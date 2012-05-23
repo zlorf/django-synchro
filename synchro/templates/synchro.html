@@ -1,0 +1,24 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_modify %}
+
+{% block coltype %}colMS{% endblock %}
+
+{% block title %}{% trans "Synchronization" %}{{ block.super }}{% endblock %}
+
+{% block breadcrumbs %}{% if not is_popup %}
+<div class="breadcrumbs">
+    <a href="{% url admin:index %}">{% trans "Home" %}</a> &rsaquo;
+    {% trans "Synchronization" %}
+</div>
+{% endif %}{% endblock %}
+
+{% block content %}
+<div id="content-main">
+<h1>{% trans "Synchronization" %}</h1>
+<form method="post">
+    {% csrf_token %}
+    <br>{% trans 'Last synchro time' %}: {{ last }}.
+    <br><br><input type="submit" name="synchro" value="{% trans 'Synchronize' %}">
+</form>
+</div>
+{% endblock %}
