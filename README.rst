@@ -4,7 +4,6 @@ django-synchro
 TODO:
 write pretty usage readme;
 write rich tests;
-make disable_synchro_log signal decorator
 
 
 AIM:
@@ -86,6 +85,17 @@ To prevent this, wrap handler with DisableSynchroLog:
 def update_agent_balance_delete(sender, instance, *args, **kwargs):
     with DisableSynchroLog():
         instance.agent.balance -= float(instance.payment_left))
+        instance.agent.save()
+
+Or with decorator:
+
+@receiver(models.signals.post_delete, sender=Parcel)
+@disable_synchro_log
+def update_agent_balance_delete(sender, instance, *args, **kwargs):
+    instance.agent.balance -= float(instance.payment_left))
+    instance.agent.save()
+
+Using decorator, be sure to place it after connecting to signal, not before - otherwise it won't work.
 
 
 If you wish to reset sychronization status:

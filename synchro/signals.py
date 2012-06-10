@@ -1,4 +1,7 @@
+from functools import wraps
+
 from django.db.models.signals import post_save, post_delete
+
 
 def synchro_connect():
     from models import save_changelog_add_chg, save_changelog_del
@@ -16,3 +19,10 @@ class DisableSynchroLog(object):
     def __exit__(self, *args, **kwargs):
         synchro_connect()
         return False
+
+def disable_synchro_log(f):
+    @wraps(f)
+    def inner(*args, **kwargs):
+        with DisableSynchroLog():
+            return f(*args, **kwargs)
+    return inner
