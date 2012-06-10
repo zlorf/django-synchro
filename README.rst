@@ -1,109 +1,275 @@
+==============
 django-synchro
 ==============
 
-TODO:
-write pretty usage readme;
-write rich tests;
 
+Aim & purpose
+=============
 
-AIM:
 This app is for synchronization of django objects between databases.
 
+It logs information about objects' manipulations (additions, changes, deletions).
+When synchronization is launched, all objects logged from the last checkpoint are synced to another database.
+
+**Important note**: This app doesn't log detailed information about changes (e.g. which fields were updated),
+just that such manipulation occured. When the synchronization is performed, the objects are synced with their newest, actual values.
+(however, you can specify some fields to be `skipped` during synchronization, see below__).
+
+__ `Skipping fields`_
+
+Example 1
+---------
+
 Consider scenario:
-- there is one production projects deployed on the web
+
+- there is one production project deployed on the web
 - and the same project is deployed on some office computer in case of main server failure
 
-Assuming that local database is regularly synced (eg. once a day main database is exported and imported into local system),
-in case of long main server failure staff may use local project (inserting objects etc.).
-After server is up again, local changes (from the point of last checkpoint) can be synchronized to remote server.
+Assuming that the local database is regularly synced (eg. once a day the main database is exported and imported into the local system),
+in case of a long main server downtime the staff may use the local project (inserting objects etc.).
+
+After the server is up again, the local changes (from the point of the last checkpoint) can be painlessly synchronized to the remote server.
+
+Example 2
+---------
+
+You can also synchronize databases both ways, not only in the slave-master model like in the previous example.
+
+However, it is probably better (if possible) to have a common database rather than to have
+one for every project deployment and to perform synchronization between them.
 
 
-USAGE:
+Installation
+============
 
-Install app (please note django-dbsettings requirement and its install notes, such as cache backend important remarks)
+1. Install app (**note**: ``django-dbsettings`` is required and please view its install notes,
+   such as `cache backend` important remarks).
 
-Configure DATABASES
+#. Configure ``DATABASES``.
 
-Add synchro to INSTALLED_APPS
+#. Add ``synchro`` to ``INSTALLED_APPS``.
 
-Specify in your settings which models should be watched and synchronized:
+#. Specify in your ``settings.py`` what is `remote database` name and which models should be watched and synchronized::
 
-SYNCHRO_REMOTE = 'remote'
-SYNCHRO_MODELS = (
-    'my_first_app', # all models
-    ('my_second_app', 'model1', 'model2'), # listed models
-    'my_third_app', # all models again
-)
+    SYNCHRO_REMOTE = 'remote'
+    SYNCHRO_MODELS = (
+        'my_first_app', # all models from my_first_app
+        ('my_second_app', 'model1', 'model2'), # only listed models
+        'my_third_app', # all models again
+    )
 
+Later, `REMOTE` will mean `remote database`.
 
-TO SYNCHRONIZE:
-$ ./manage.py synchronize
+Usage
+=====
 
-SYNCHRO ADMIN VIEW:
+Synchronization
+---------------
 
-Include in your urls:
+Just invoke ``synchronize`` management command::
 
-url(r'^synchro/', include('synchro.urls', 'synchro', 'synchro')),
+    $ ./manage.py synchronize
 
-Then the view will be available at reversed url: synchro:synchro
+Admin synchro view
+------------------
 
+In order to allow performing synchronization without shell access, you can use special admin view.
 
-REMARKS:
+Include in your urls::
 
-For efficient objects finding, provide natural_key and get_by_natural_key.
-Short way of writing manager is provided.
+    url(r'^synchro/', include('synchro.urls', 'synchro', 'synchro')),
 
-from synchro import natural_manager
-
-class MyModel(models.Model):
-    ...
-    objects = natural_manager('code', 'day')
-    def natural_key(self):
-        return self.code, self.day
-
-
-If your model has some fields that should not be synchronized (eg. field with payment balances, which is computed based on orders - in order.post_save signal):
-
-SYNCHRO_SKIP = ('balance',)
+Then the view will be available at reversed url: ``synchro:synchro``.
 
 
-If you want to not log some actions:
+Remarks and features
+====================
 
-from synchro import DisableSynchroLog
+Natural keys
+------------
 
-with DisableSynchroLog():
-    mymodel.name = foo
-    mymodel.save()
+For efficient objects finding, it is **highly suggested** to provide ``natural_key`` object method
+and ``get_by_natural_key`` manager method.
+This will allow easy finding whether the synchronized object exists in `REMOTE` and to prevent duplicating.
 
+Although adding ``natural_key`` to model definition is relatively quick, extending a manager may
+require extra work in cases when the default manager is used::
 
-If your signal handlers modify other objects, such action will be probably reproduced twice:
-- once when model will be updated on REMOTE, then REMOTE signal handler will fire
-- second time, because original signal handler's action was logged, the modified object will be synchronized
-To prevent this, wrap handler with DisableSynchroLog:
+    class MyManager(models.Manager):
+        def get_by_natural_key(self, code, day):
+            return self.get(code=code, day=day)
 
-@receiver(models.signals.post_delete, sender=Parcel)
-def update_agent_balance_delete(sender, instance, *args, **kwargs):
+    class MyModel(models.Model):
+        ...
+        objects = MyManager()
+        def natural_key(self):
+            return self.code, self.day
+
+To minimalize the effort of implementing a custom manager, a shortcut is provided::
+
+    from synchro import natural_manager
+
+    class MyModel(models.Model):
+        ...
+        objects = natural_manager('code', 'day')
+        def natural_key(self):
+            return self.code, self.day
+
+``natural_manager`` extends the built-in Manager by default; you can change its superclass using ``manager`` keyword::
+
+    from synchro import natural_manager
+
+    class MyVeryCustomManager(models.Manager):
+        ... # some mumbo-jumbo magic
+
+    class MyModel(models.Model):
+        ...
+        objects = natural_manager('code', 'day', manager=MyVeryCustomManager)
+        def natural_key(self):
+            return self.code, self.day
+
+The purpose of a natural key is to *uniquely* distinguish among model instances;
+however, there are situations where it is impossible. You can choose such fields that will cause
+``get_by_natural_key`` to find more than one object. In such a situation, it will raise
+``MultipleObjectsReturned`` exception and the synchronization will fail.
+
+But you can tell ``natural_manager`` that you are aware of such a situation and that it
+should just take the first object found::
+
+    class Person(models.Model):
+        ...
+        # combination of person name and city is not unique
+        objects = natural_manager('first_name', 'last_name', 'city', allow_many=True)
+        def natural_key(self):
+            return self.first_name, self.last_name, self.city
+
+Don't use ``allow_many`` unless you are completly sure what you are doing and what
+you want to achieve.
+
+Skipping fields
+---------------
+
+If your model has some fields that should not be synchronized, like computed fields
+(eg. field with payment balances, which is updated on every order save - in ``order.post_save`` signal),
+you can exclude them from synchronization::
+
+    class MyModel(models.Model):
+        ...
+        SYNCHRO_SKIP = ('balance',)
+
+Temporary logging disabling
+---------------------------
+
+If you don't want to log some actions::
+
+    from synchro import DisableSynchroLog
+
     with DisableSynchroLog():
+        mymodel.name = foo
+        mymodel.save()
+
+Or, in a less robust way, with a decorator::
+
+    from synchro import disable_synchro_log
+
+    @disable_synchro_log
+    def foo(mymodel):
+        mymodel.name = foo
+        mymodel.save()
+
+Signals
+-------
+
+That's a harder part.
+
+If your signal handlers modify other objects, such an action will be probably reproduced twice:
+
+- first, when the model will be updated on `REMOTE`, then normal `REMOTE` signal handler will launch
+- second time, because the original signal handler's action was logged, the whole modified object will be synchronized;
+  this is probably undesirable.
+
+Consider a bad scenario:
+
+1. Initially databases are synced. There is an object ``A`` in each of the databases. ``A.foo`` and ``A.bar`` values are both 1.
+#. On `REMOTE`, we change ``A.foo`` to 42 and save.
+#. On `LOCAL`, we save object ``X``. In some ``X`` signal handler, ``A.bar`` is incremented.
+#. We perform synchronization:
+
+   a. ``X`` is synced.
+   #. ``X`` signal handler is invoked on `REMOTE`, resulting in `REMOTE`'s ``A.bar`` incrementation.
+      So far so good. `REMOTE`'s ``A.bar == 2`` and ``A.foo == 42``, just like it should.
+   #. Because ``A`` change (during step 3) was logged, ``A`` is synced. *Not good* -
+      `REMOTE` value of ``A.foo`` will be overwritten with 1
+      (because `LOCAL` version is considered newer, as it was saved later).
+
+It happened because the signal handler actions were logged.
+
+To prevent this from happening, wrap handler with DisableSynchroLog::
+
+    @receiver(models.signals.post_delete, sender=Parcel)
+    def update_agent_balance_delete(sender, instance, *args, **kwargs):
+        with DisableSynchroLog():
+            instance.agent.balance -= float(instance.payment_left))
+            instance.agent.save()
+
+Or with the decorator::
+
+    @receiver(models.signals.post_delete, sender=Parcel)
+    @disable_synchro_log
+    def update_agent_balance_delete(sender, instance, *args, **kwargs):
         instance.agent.balance -= float(instance.payment_left))
         instance.agent.save()
 
-Or with decorator:
+If using the decorator, be sure to place it after connecting to the signal, not before - otherwise it won't work.
 
-@receiver(models.signals.post_delete, sender=Parcel)
-@disable_synchro_log
-def update_agent_balance_delete(sender, instance, *args, **kwargs):
-    instance.agent.balance -= float(instance.payment_left))
-    instance.agent.save()
+Signal handlers for multi-db
+............................
 
-Using decorator, be sure to place it after connecting to signal, not before - otherwise it won't work.
+Just a reminder note.
 
+When a synchronization is performed, signal handlers are invoked for created/updated/deleted `REMOTE` objects.
+And those signals are of course handled on the `LOCAL` machine.
 
-If you wish to reset sychronization status:
+That means: signal handlers (and probably other part of project code) must be ready to handle both `LOCAL`
+and `REMOTE` objects. It must use ``using(...)`` clause or ``db_manager(...)`` to ensure that the proper database
+is used::
 
-from synchro import reset_synchro
-reset_synchro()
+    def reset_specials(sender, instance, *args, **kwargs):
+        Offer.objects.db_manager(instance._state.db).filter(date__lt=instance.date).update(special=False)
 
-Or ugly way of changing synchro checkpoint:
+Plain ``objects``, without ``db_manager`` or ``using``, always use the ``default`` database (which means `LOCAL`).
 
-from synchro.models import options
-options.last_check = datetime.datetime.now()
+But that is normal in multi-db projects.
+
+Synchro on `REMOTE` and time comparing
+--------------------------------------
+
+If you wish only to synchronize one-way (always from `LOCAL` to `REMOTE`), you may be tempted not to include
+``synchro`` in `REMOTE` ``INSTALLED_APPS``.
+
+Yes, you can do that and you will save some resources - logs won't be stored.
+
+But keeping ``synchro`` active on `REMOTE` is a better idea. It will pay at synchonization: the synchro will look
+at logs and determine which object is newer. If the `LOCAL` one is older, it won't be synced.
+
+Checkpoints
+-----------
+
+If you wish to reset sychronization status::
+
+    from synchro import reset_synchro
+
+    reset_synchro()
+
+Or raw way of manually changing synchro checkpoint::
+
+    from synchro.models import options
+
+    options.last_check = datetime.datetime.now() # or any time you wish
+
+----------
+
+:Author: Jacek Tomaszewski
+:Version: 0.2 of 10/06/2012
+:Thanks: to my fiancee for text correction
+:TODOs: write rich tests
