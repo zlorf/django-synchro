@@ -4,9 +4,12 @@ from setuptools import setup, find_packages
 setup(
     name='django-synchro',
     description='Django app for database data synchronization.',
+    long_description=open('README.rst').read(),
     version='0.2',
-    maintainer="Jacek Tomaszewski",
-    maintainer_email="jacek.tomek@gmail.com",
+    author='Jacek Tomaszewski',
+    author_email='jacek.tomek@gmail.com',
+    url='https://github.com/zlorf/django-synchro',
+    license='MIT',
     install_requires=(
         'django-dbsettings',
         'django>=1.3',
