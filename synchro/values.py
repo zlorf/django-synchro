@@ -35,6 +35,7 @@ class DateValue(Value):
             return res.date()
         return res
 
+
 class DateTimeValue(DateValue):
     field = forms.DateTimeField
     formats_source = 'DATETIME_INPUT_FORMATS'

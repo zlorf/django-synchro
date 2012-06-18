@@ -14,9 +14,12 @@ def get_object_for_this_type_using(self, using, **kwargs):
     return self.model_class()._default_manager.using(using).get(**kwargs)
 ContentType.get_object_for_this_type_using = get_object_for_this_type_using
 
+
 def find_ref(ct, id):
-    """Retrieve referenced remote object. Also delete invalid reference.
-    Returns (remote, reference) or (None, None)."""
+    """Retrieves referenced remote object. Also deletes invalid reference.
+
+    Returns (remote, reference) or (None, None).
+    """
     try:
         ref = Reference.objects.get(content_type=ct, local_object_id=id)
         try:
@@ -28,8 +31,9 @@ def find_ref(ct, id):
     except Reference.DoesNotExist:
         return None, None
 
+
 def find_natural(ct, loc, key=None):
-    "Try to find remote object for specified natural key or loc.natural_key."
+    """Tries to find remote object for specified natural key or loc.natural_key."""
     try:
         key = key or loc.natural_key()
         model = ct.model_class()
@@ -37,22 +41,26 @@ def find_natural(ct, loc, key=None):
     except (AttributeError, ObjectDoesNotExist):
         return None
 
+
 def is_remote_newer(loc, rem):
     try:
         loc_ct = ContentType.objects.get_for_model(loc)
         rem_ct = ContentType.objects.db_manager(REMOTE).get_for_model(rem)
-        loc_time = ChangeLog.objects.filter(content_type=loc_ct, object_id=loc.pk).order_by('-date')[0].date
-        rem_time = ChangeLog.objects.using(REMOTE).filter(content_type=rem_ct, object_id=rem.pk).order_by('-date')[0].date
+        loc_time = (ChangeLog.objects.filter(content_type=loc_ct, object_id=loc.pk)
+                    .order_by('-date')[0].date)
+        rem_time = (ChangeLog.objects.filter(content_type=rem_ct, object_id=rem.pk)
+                    .order_by('-date').using(REMOTE)[0].date)
         return rem_time >= loc_time
     except (ObjectDoesNotExist, IndexError):
         return False
 
+
 def save_with_fks(ct, obj, new_pk):
-    "Save object in REMOTE, ensuring that every of it fk/m2m is present in REMOTE"
+    """Saves object in REMOTE, ensuring that every of it fk/m2m is present in REMOTE."""
     old_id = obj.pk
     obj._state.db = REMOTE
 
-    fks = ( f for f in obj._meta.fields if f.rel )
+    fks = (f for f in obj._meta.fields if f.rel)
     for f in fks:
         fk_id = f.value_from_object(obj)
         if fk_id is not None:
@@ -71,7 +79,8 @@ def save_with_fks(ct, obj, new_pk):
 
     obj.pk = new_pk
     obj.save(using=REMOTE)
-    r, n = Reference.objects.get_or_create(content_type=ct, local_object_id=old_id, defaults={'remote_object_id': obj.pk})
+    r, n = Reference.objects.get_or_create(content_type=ct, local_object_id=old_id,
+                                           defaults={'remote_object_id': obj.pk})
     if not n and r.remote_object_id != obj.pk:
         r.remote_object_id = obj.pk
         r.save()
@@ -79,24 +88,28 @@ def save_with_fks(ct, obj, new_pk):
     for f, out in _m2m.iteritems():
         f.save_form_data(obj, out)
 
+
 def create_with_fks(ct, obj, pk):
-    "Perform create, but firstly disable synchro of some user defined fields (if any)"
+    """Performs create, but firstly disables synchro of some user defined fields (if any)"""
     skip = getattr(obj, 'SYNCHRO_SKIP', ())
     raw = obj.__class__()
     for f in skip:
         setattr(obj, f, getattr(raw, f))
     return save_with_fks(ct, obj, pk)
 
+
 def change_with_fks(ct, obj, rem):
-    "Perform change, but firstly disable synchro of some user defined fields (if any)"
+    """Performs change, but firstly disables synchro of some user defined fields (if any)"""
     skip = getattr(obj, 'SYNCHRO_SKIP', ())
     for f in skip:
         setattr(obj, f, getattr(rem, f))
     return save_with_fks(ct, obj, rem.pk)
 
+
 def ensure_exist(ct, id):
-    """Ensure that remote object exists for specified ct/id. If not, create it.
-    Returns remote object and reference."""
+    """Ensures that remote object exists for specified ct/id. If not, create it.
+    Returns remote object and reference.
+    """
     obj = ct.get_object_for_this_type(pk=id)
     rem, ref = find_ref(ct, obj.pk)
     if rem is not None:
@@ -106,6 +119,7 @@ def ensure_exist(ct, id):
         # maybe create ref?
         return rem, None
     return perform_add(ct, id)
+
 
 def perform_add(ct, id, log=None):
     obj = ct.get_object_for_this_type(pk=id)
@@ -118,8 +132,10 @@ def perform_add(ct, id, log=None):
         new_pk = None if obj._meta.has_auto_field else obj.pk
         create_with_fks(ct, obj, new_pk)
         rem = obj
-    ref, _ = Reference.objects.get_or_create(content_type=ct, local_object_id=id, remote_object_id=rem.pk)
+    ref, _ = Reference.objects.get_or_create(content_type=ct, local_object_id=id,
+                                             remote_object_id=rem.pk)
     return rem, ref
+
 
 def perform_chg(ct, id, log=None):
     obj = ct.get_object_for_this_type(pk=id)
@@ -130,6 +146,7 @@ def perform_chg(ct, id, log=None):
     if rem is not None:
         return change_with_fks(ct, obj, rem)
     perform_add(ct, id)
+
 
 def perform_del(ct, id, log):
     rem, ref = find_ref(ct, id)
@@ -144,11 +161,13 @@ def perform_del(ct, id, log):
     except DeleteKey.DoesNotExist:
         pass
 
+
 ACTIONS = {
     ADDITION: perform_add,
     CHANGE:   perform_chg,
     DELETION: perform_del,
 }
+
 
 class Command(BaseCommand):
     args = ''
@@ -172,7 +191,8 @@ class Command(BaseCommand):
             del_time = to_del.get((log.content_type, log.object_id))
             if last_time == del_time and log.action == DELETION:
                 ACTIONS[log.action](log.content_type, log.object_id, log)
-                del to_del[(log.content_type, log.object_id)] # delete so that next actions with the same time can be performed
+                # delete record so that next actions with the same time can be performed
+                del to_del[(log.content_type, log.object_id)]
             if del_time is None or last_time > del_time:
                 ACTIONS[log.action](log.content_type, log.object_id, log)
 

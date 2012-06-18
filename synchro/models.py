@@ -6,7 +6,7 @@ import dbsettings
 
 from values import DateTimeValue
 #noinspection PyUnresolvedReferences
-import settings
+import settings  # in order to validate
 
 
 ACTIONS = (
@@ -15,19 +15,20 @@ ACTIONS = (
     (DELETION, 'Delete'),
 )
 
+
 class SynchroSettings(dbsettings.Group):
     last_check = DateTimeValue('Last synchronization')
 options = SynchroSettings()
+
 
 class Reference(models.Model):
     content_type = models.ForeignKey(ContentType)
     local_object_id = models.PositiveIntegerField()
     remote_object_id = models.PositiveIntegerField()
-    #local = generic.GenericForeignKey(fk_field='local_object_id')
-    #remote = generic.GenericForeignKey(fk_field='remote_object_id')
 
     class Meta:
         unique_together = ('content_type', 'local_object_id')
+
 
 class ChangeLog(models.Model):
     content_type = models.ForeignKey(ContentType)
@@ -38,6 +39,7 @@ class ChangeLog(models.Model):
 
     def __unicode__(self):
         return u'ChangeLog for %s (%s)' % (unicode(self.object), self.get_action_display())
+
 
 class DeleteKey(models.Model):
     changelog = models.OneToOneField(ChangeLog)
@@ -50,8 +52,8 @@ def save_changelog_add_chg(sender, instance, created, using, **kwargs):
             ChangeLog.objects.create(object=instance, action=ADDITION)
         else:
             cl = ChangeLog.objects.create(object=instance, action=CHANGE)
-            cls = ChangeLog.objects.filter(content_type=cl.content_type, object_id=cl.object_id)\
-                    .exclude(pk=cl.pk).order_by('-date', '-pk')
+            cls = (ChangeLog.objects.filter(content_type=cl.content_type, object_id=cl.object_id)
+                   .exclude(pk=cl.pk).order_by('-date', '-pk'))
             if len(cls) > 0 and cls[0].action == CHANGE:
                 cls[0].delete()
 

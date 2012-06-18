@@ -2,16 +2,20 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models import get_app, get_models, get_model
 
+
 def get_all_models(app):
     return get_models(get_app(app))
+
 
 def gel_listed_models(app, l):
     def parse(model):
         m = get_model(app, model)
         if m is None:
-            raise ImproperlyConfigured('SYNCHRO_MODELS: Model %s not found in %s app.' % (model, app))
+            raise ImproperlyConfigured(
+                'SYNCHRO_MODELS: Model %s not found in %s app.' % (model, app))
         return m
     return map(parse, l)
+
 
 def parse_models(l):
     res = []
@@ -24,6 +28,7 @@ def parse_models(l):
             app = entry[0]
             res.extend(gel_listed_models(app, entry[1:]))
     return res
+
 
 MODELS = parse_models(getattr(settings, 'SYNCHRO_MODELS', ()))
 REMOTE = getattr(settings, 'SYNCHRO_REMOTE', None)

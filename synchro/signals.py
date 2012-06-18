@@ -8,9 +8,11 @@ def synchro_connect():
     post_save.connect(save_changelog_add_chg, dispatch_uid='synchro_add_chg')
     post_delete.connect(save_changelog_del, dispatch_uid='synchro_del')
 
+
 def synchro_disconnect():
     post_save.disconnect(dispatch_uid='synchro_add_chg')
     post_delete.disconnect(dispatch_uid='synchro_del')
+
 
 class DisableSynchroLog(object):
     def __enter__(self):
@@ -19,6 +21,7 @@ class DisableSynchroLog(object):
     def __exit__(self, *args, **kwargs):
         synchro_connect()
         return False
+
 
 def disable_synchro_log(f):
     @wraps(f)
