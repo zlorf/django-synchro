@@ -43,7 +43,11 @@ Installation
 ============
 
 1. Install app (**note**: ``django-dbsettings`` is required and please view its install notes,
-   such as `cache backend` important remarks).
+   such as `cache backend` important remarks)::
+
+   $ pip install django-synchro
+
+   or download it manually and put in python path.
 
 #. Configure ``DATABASES``.
 
