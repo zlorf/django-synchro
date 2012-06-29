@@ -11,7 +11,7 @@ setup(
     url='https://github.com/zlorf/django-synchro',
     license='MIT',
     install_requires=(
-        'django-dbsettings',
+        'django-dbsettings>=0.1',
         'django>=1.3',
     ),
     classifiers=[

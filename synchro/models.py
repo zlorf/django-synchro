@@ -4,7 +4,6 @@ from django.contrib.contenttypes import generic
 from django.db import models
 import dbsettings
 
-from values import DateTimeValue
 #noinspection PyUnresolvedReferences
 import settings  # in order to validate
 
@@ -17,7 +16,7 @@ ACTIONS = (
 
 
 class SynchroSettings(dbsettings.Group):
-    last_check = DateTimeValue('Last synchronization')
+    last_check = dbsettings.DateTimeValue('Last synchronization')
 options = SynchroSettings()
 
 
