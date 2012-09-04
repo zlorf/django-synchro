@@ -22,8 +22,8 @@ options = SynchroSettings()
 
 class Reference(models.Model):
     content_type = models.ForeignKey(ContentType)
-    local_object_id = models.PositiveIntegerField()
-    remote_object_id = models.PositiveIntegerField()
+    local_object_id = models.CharField(max_length=20)
+    remote_object_id = models.CharField(max_length=20)
 
     class Meta:
         unique_together = ('content_type', 'local_object_id')
