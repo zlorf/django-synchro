@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.core.exceptions import MultipleObjectsReturned, ValidationError
 from django.db.models import Manager
 
@@ -33,3 +35,8 @@ def natural_manager(*fields, **kwargs):
         return NewNaturalManager(fields, allow_many)
 
 
+def reset_synchro():
+    from models import ChangeLog, Reference, options
+    options.last_check = datetime.now()
+    ChangeLog.objects.all().delete()
+    Reference.objects.all().delete()
