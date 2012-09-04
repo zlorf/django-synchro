@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from signals import DisableSynchroLog, disable_synchro_log
-from utility import natural_manager
+from utility import natural_manager, NaturalManager
 
 
 def reset_synchro():
