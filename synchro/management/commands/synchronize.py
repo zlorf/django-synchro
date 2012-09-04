@@ -16,7 +16,8 @@ ContentType.get_object_for_this_type_using = get_object_for_this_type_using
 
 
 def find_ref(ct, id):
-    """Retrieves referenced remote object. Also deletes invalid reference.
+    """
+    Retrieves referenced remote object. Also deletes invalid reference.
 
     Returns (remote, reference) or (None, None).
     """
@@ -107,7 +108,8 @@ def change_with_fks(ct, obj, rem):
 
 
 def ensure_exist(ct, id):
-    """Ensures that remote object exists for specified ct/id. If not, create it.
+    """
+    Ensures that remote object exists for specified ct/id. If not, create it.
     Returns remote object and reference.
     """
     obj = ct.get_object_for_this_type(pk=id)
