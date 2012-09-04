@@ -58,7 +58,7 @@ Installation
     SYNCHRO_REMOTE = 'remote'
     SYNCHRO_MODELS = (
         'my_first_app', # all models from my_first_app
-        ('my_second_app', 'model1', 'model2'), # only listed models
+        ('my_second_app', 'model1', 'model2'), # only listed models (letter case doesn't matter)
         'my_third_app', # all models again
     )
 
@@ -88,6 +88,20 @@ Then the view will be available at reversed url: ``synchro:synchro``.
 
 Remarks and features
 ====================
+
+QuerySet ``update`` issue
+-------------------------
+
+Django-synchro logs information about objects modifications and later use it when asked for synchronization.
+
+The logging take place using the ``post_save`` and ``post_delete`` signal handlers.
+
+That means that actions which don't emmit those signals (like ``objects.update`` method) would result
+in no log stored, hence no synchronization of actions' objects.
+
+**So, please remind**: objects modified via ``objects.update`` won't be synchronized unless some special code is prepared
+(eg. calling ``save`` on all updated objects or manually invoking ``post_save`` signal).
+
 
 Natural keys
 ------------
@@ -150,6 +164,14 @@ should just take the first object found::
 Don't use ``allow_many`` unless you are completly sure what you are doing and what
 you want to achieve.
 
+Side note: if ``natural_key`` consist of only one field, be sure to return a tuple anyway::
+
+    class MyModel(models.Model):
+        ...
+        objects = natural_manager('code')
+        def natural_key(self):
+            return self.code,  # comma makes it tuple
+
 Skipping fields
 ---------------
 
@@ -160,6 +182,9 @@ you can exclude them from synchronization::
     class MyModel(models.Model):
         ...
         SYNCHRO_SKIP = ('balance',)
+
+When a new object is synchronized, all its skipped fields will be reset to default values on `REMOTE`.
+Of course, the `LOCAL` object will stay untouched.
 
 Temporary logging disabling
 ---------------------------
@@ -208,7 +233,7 @@ Consider a bad scenario:
 
 It happened because the signal handler actions were logged.
 
-To prevent this from happening, wrap handler with DisableSynchroLog::
+To prevent this from happening, wrap handler with ``DisableSynchroLog``::
 
     @receiver(models.signals.post_delete, sender=Parcel)
     def update_agent_balance_delete(sender, instance, *args, **kwargs):
@@ -225,6 +250,11 @@ Or with the decorator::
         instance.agent.save()
 
 If using the decorator, be sure to place it after connecting to the signal, not before - otherwise it won't work.
+
+``Update`` issue again
+......................
+
+One can benefit from the fact that ``objects.update`` is not logged and use it in signal handlers instead of ``DisableSynchroLog``.
 
 Signal handlers for multi-db
 ............................
@@ -259,7 +289,7 @@ at logs and determine which object is newer. If the `LOCAL` one is older, it won
 Checkpoints
 -----------
 
-If you wish to reset sychronization status::
+If you wish to reset sychronization status (that is - delete logs and set checkpoint)::
 
     from synchro import reset_synchro
 
@@ -269,11 +299,26 @@ Or raw way of manually changing synchro checkpoint::
 
     from synchro.models import options
 
-    options.last_check = datetime.datetime.now() # or any time you wish
+    options.last_check = datetime.datetime.now()  # or any time you wish
+
+Changelog
+=========
+
+0.3
+    - **Backward incompatible**: Changed ``Reference`` fields type from ``Integer`` to ``Char`` in
+      order to store non-numeric keys
+    - Included 24 tests
+    - Refactored NaturalManager class so that it is accessible and importable
+    - Exception is raised if class passed to natural_manager is not Manager subclass
+    - Switched to dbsettings-bundled DateTimeValue
+    - Updated README
+0.2
+    Initial PyPI release
+0.1
+    Local development
 
 ----------
 
 :Author: Jacek Tomaszewski
-:Version: 0.2 of 10/06/2012
+:Version: 0.3 of 04/09/2012
 :Thanks: to my fiancee for text correction
-:TODOs: write rich tests

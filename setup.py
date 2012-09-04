@@ -5,7 +5,7 @@ setup(
     name='django-synchro',
     description='Django app for database data synchronization.',
     long_description=open('README.rst').read(),
-    version='0.2',
+    version='0.3',
     author='Jacek Tomaszewski',
     author_email='jacek.tomek@gmail.com',
     url='https://github.com/zlorf/django-synchro',
