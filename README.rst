@@ -86,8 +86,8 @@ Include in your urls::
 
 Then the view will be available at reversed url: ``synchro:synchro``.
 
-SYNCHRO_REMOTE setting
-----------------------
+``SYNCHRO_REMOTE`` setting
+--------------------------
 
 Generally, ``SYNCHRO_REMOTE`` setting can behave in 3 different ways:
 
