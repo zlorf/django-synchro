@@ -5,10 +5,17 @@ from django.db.models import Manager
 
 
 class NaturalManager(Manager):
-    def __init__(self, fields, allow_many=False):
-        super(NaturalManager, self).__init__()
-        self.fields = fields
-        self.allow_many = allow_many
+    def __init__(self, **kwargs):
+        """
+        Manager must be able to instantiate without parameters in order to work with M2M.
+        Somehow related to Django bug #13313.
+        """
+        for arg in ('fields', 'allow_many'):
+            if arg in kwargs:
+                setattr(self, arg, kwargs.pop(arg))
+            assert hasattr(self, arg),\
+                'No %s property found in object. Pass keyword to __init__' % arg
+        super(NaturalManager, self).__init__(**kwargs)
 
     def get_by_natural_key(self, *args):
         lookups = dict(zip(self.fields, args))
@@ -20,19 +27,18 @@ class NaturalManager(Manager):
             raise
 
 
-def natural_manager(*fields, **kwargs):
+def natural_manager(*_fields, **kwargs):
     manager = kwargs.get('manager', Manager)
-    allow_many = kwargs.get('allow_many', False)
-    if manager == Manager:
-        return NaturalManager(fields, allow_many)
-    else:
-        if not issubclass(manager, Manager):
-            raise ValidationError(
-                '%s manager class must be a subclass of django.db.models.Manager'
-                % manager.__name__)
-        class NewNaturalManager(NaturalManager, manager):
-            pass
-        return NewNaturalManager(fields, allow_many)
+    _allow_many = kwargs.get('allow_many', False)
+    if not issubclass(manager, Manager):
+        raise ValidationError(
+            '%s manager class must be a subclass of django.db.models.Manager'
+            % manager.__name__)
+
+    class NewNaturalManager(NaturalManager, manager):
+        fields = _fields
+        allow_many = _allow_many
+    return NewNaturalManager()
 
 
 def reset_synchro():

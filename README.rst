@@ -160,6 +160,8 @@ To minimalize the effort of implementing a custom manager, a shortcut is provide
         def natural_key(self):
             return self.code, self.day
 
+Class returned by ``natural_manager`` is a subclass of ``synchro.utility.NaturalManager``.
+
 The purpose of a natural key is to *uniquely* distinguish among model instances;
 however, there are situations where it is impossible. You can choose such fields that will cause
 ``get_by_natural_key`` to find more than one object. In such a situation, it will raise
