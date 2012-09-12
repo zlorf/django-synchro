@@ -64,6 +64,7 @@ Installation
 
 Later, `REMOTE` will mean `remote database`.
 
+
 Usage
 =====
 
@@ -85,6 +86,20 @@ Include in your urls::
 
 Then the view will be available at reversed url: ``synchro:synchro``.
 
+SYNCHRO_REMOTE setting
+----------------------
+
+Generally, ``SYNCHRO_REMOTE`` setting can behave in 3 different ways:
+
+1. The most naturally: it holds name of `REMOTE` database. When ``synchronize`` is called, ``sychro`` will
+   sync objects from `LOCAL` database to `REMOTE` one.
+#. When ``SYNCHRO_REMOTE`` is ``None``: it means that no `REMOTE` is needed as ``synchro`` will only store
+   logs (see below__). It's useful on `REMOTE` itself.
+#. When ``SYNCHRO_REMOTE`` is not specified at all, it behaves just like above (as if it was ``None``), but
+   will show a RuntimeWarning.
+
+__ synchro_on_remote_
+
 
 Remarks and features
 ====================
@@ -101,7 +116,6 @@ in no log stored, hence no synchronization of actions' objects.
 
 **So, please remind**: objects modified via ``objects.update`` won't be synchronized unless some special code is prepared
 (eg. calling ``save`` on all updated objects or manually invoking ``post_save`` signal).
-
 
 Natural keys
 ------------
@@ -275,6 +289,8 @@ Plain ``objects``, without ``db_manager`` or ``using``, always use the ``default
 
 But that is normal in multi-db projects.
 
+.. _synchro_on_remote:
+
 Synchro on `REMOTE` and time comparing
 --------------------------------------
 
@@ -285,6 +301,9 @@ Yes, you can do that and you will save some resources - logs won't be stored.
 
 But keeping ``synchro`` active on `REMOTE` is a better idea. It will pay at synchonization: the synchro will look
 at logs and determine which object is newer. If the `LOCAL` one is older, it won't be synced.
+
+You probably should set ``SYNCHRO_REMOTE = None`` on `REMOTE` if no synchronizations will be
+performed there (alternatively, you can add some dummy sqlite database to ``DATABASES``).
 
 Checkpoints
 -----------
@@ -304,7 +323,12 @@ Or raw way of manually changing synchro checkpoint::
 Changelog
 =========
 
-0.3
+**0.3.1** (12/09/2012)
+    - ``SYNCHRO_REMOTE`` setting is not required anymore.
+      Its lack will only block ``synchronize`` command
+    - Added 2 tests regarding the change above
+    - Updated README
+**0.3** (04/09/2012)
     - **Backward incompatible**: Changed ``Reference`` fields type from ``Integer`` to ``Char`` in
       order to store non-numeric keys
     - Included 24 tests
@@ -312,13 +336,12 @@ Changelog
     - Exception is raised if class passed to natural_manager is not Manager subclass
     - Switched to dbsettings-bundled DateTimeValue
     - Updated README
-0.2
+**0.2** (10/06/2012)
     Initial PyPI release
-0.1
+**0.1**
     Local development
 
 ----------
 
 :Author: Jacek Tomaszewski
-:Version: 0.3 of 04/09/2012
 :Thanks: to my fiancee for text correction

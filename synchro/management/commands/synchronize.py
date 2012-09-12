@@ -2,7 +2,7 @@ from datetime import datetime
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from synchro.models import Reference, ChangeLog, DeleteKey, options as app_options
@@ -178,6 +178,12 @@ class Command(BaseCommand):
     @transaction.commit_on_success
     @transaction.commit_on_success(using=REMOTE)
     def handle(self, *args, **options):
+        if REMOTE is None:
+            # Because of BaseCommand bug (#18387, fixed in Django 1.5), we cannot use CommandError
+            # in tests. Hence this hook.
+            exception_class = options.get('exception_class', CommandError)
+            raise exception_class('No REMOTE database specified in settings.')
+
         since = app_options.last_check
         last_time = datetime.now()
         logs = ChangeLog.objects.filter(date__gt=since).select_related().order_by('date', 'pk')

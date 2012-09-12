@@ -2,8 +2,8 @@ import datetime
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
-from django.core.management import call_command
+from django.core.exceptions import ValidationError, ImproperlyConfigured
+from django.core.management import call_command, CommandError
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models import F
@@ -154,8 +154,8 @@ class SynchroTests(TestCase):
     def assertRemoteCount(self, num, cls):
         self._assertDbCount(REMOTE, num, cls)
 
-    def synchronize(self):
-        call_command('synchronize', verbosity=0)
+    def synchronize(self, **kwargs):
+        call_command('synchronize', verbosity=0, **kwargs)
 
     def wait(self):
         """
@@ -190,6 +190,44 @@ class SimpleSynchroTests(SynchroTests):
         self.assertIn(TestModel, synchro_settings.MODELS)
         self.assertIn(PkModelWithSkip, synchro_settings.MODELS)
         self.assertNotIn(ChangeLog, synchro_settings.MODELS)
+
+    def test_settings_with_invalid_remote(self):
+        """Check if specifying invalid remote results in exception."""
+        with override_settings(SYNCHRO_REMOTE='invalid'):
+            with self.assertRaises(ImproperlyConfigured):
+                reload(synchro_settings)
+        # Restore previous state
+        reload(synchro_settings)
+        self.assertEqual(REMOTE, synchro_settings.REMOTE)
+
+    def test_settings_without_remote(self):
+        """Check if lack of REMOTE in settings cause synchronization disablement."""
+        import synchro.management.commands.synchronize
+        with override_settings(SYNCHRO_REMOTE=None):
+            reload(synchro_settings)
+            reload(synchro.management.commands.synchronize)
+            self.assertIsNone(synchro_settings.REMOTE)
+            self.assertLocalCount(0, ChangeLog)
+            TestModel.objects.create(name='James', cash=7)
+            self.assertLocalCount(1, TestModel)
+            # ChangeLog created successfully despite lack of REMOTE
+            self.assertLocalCount(1, ChangeLog)
+
+            from django import get_version
+            if get_version() >= '1.5':
+                self.assertRaises(CommandError, self.synchronize)
+            else:
+                # Because of BaseCommand bug (#18387, fixed in Django 1.5), we cannot use
+                # CommandError in tests: it is being caught and results in sys.exit(1).
+                class ExceptionStub(Exception):
+                    pass
+                with self.assertRaises(ExceptionStub):
+                    self.synchronize(exception_class=ExceptionStub)
+
+        # Restore previous state
+        reload(synchro_settings)
+        reload(synchro.management.commands.synchronize)
+        self.assertEqual(REMOTE, synchro_settings.REMOTE)
 
     def test_simple_synchro(self):
         """Check object creation and checkpoint storage."""

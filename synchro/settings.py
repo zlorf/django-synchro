@@ -34,5 +34,9 @@ MODELS = parse_models(getattr(settings, 'SYNCHRO_MODELS', ()))
 REMOTE = getattr(settings, 'SYNCHRO_REMOTE', None)
 LOCAL = 'default'
 
-if REMOTE not in settings.DATABASES:
-    raise ImproperlyConfigured('SYNCHRO_REMOTE not specified or invalid.')
+if REMOTE is None:
+    if not hasattr(settings, 'SYNCHRO_REMOTE'):
+        import  warnings
+        warnings.warn('SYNCHRO_REMOTE not specified. Synchronization is disabled.', RuntimeWarning)
+elif REMOTE not in settings.DATABASES:
+    raise ImproperlyConfigured('SYNCHRO_REMOTE invalid - no such database: %s.' % REMOTE)
