@@ -139,41 +139,41 @@ require extra work in cases when the default manager is used::
 
 To minimalize the effort of implementing a custom manager, a shortcut is provided::
 
-    from synchro import natural_manager
+    from synchro import NaturalManager
 
     class MyModel(models.Model):
         ...
-        objects = natural_manager('code', 'day')
+        objects = NaturalManager('code', 'day')
         def natural_key(self):
             return self.code, self.day
 
-``natural_manager`` extends the built-in Manager by default; you can change its superclass using ``manager`` keyword::
+``NaturalManager`` extends the built-in Manager by default; you can change its superclass using ``manager`` keyword::
 
-    from synchro import natural_manager
+    from synchro import NaturalManager
 
     class MyVeryCustomManager(models.Manager):
         ... # some mumbo-jumbo magic
 
     class MyModel(models.Model):
         ...
-        objects = natural_manager('code', 'day', manager=MyVeryCustomManager)
+        objects = NaturalManager('code', 'day', manager=MyVeryCustomManager)
         def natural_key(self):
             return self.code, self.day
 
-Class returned by ``natural_manager`` is a subclass of ``synchro.utility.NaturalManager``.
+In fact invoking ``NaturalManager`` creates a new class being ``NaturalManager``'s subclass.
 
 The purpose of a natural key is to *uniquely* distinguish among model instances;
 however, there are situations where it is impossible. You can choose such fields that will cause
 ``get_by_natural_key`` to find more than one object. In such a situation, it will raise
 ``MultipleObjectsReturned`` exception and the synchronization will fail.
 
-But you can tell ``natural_manager`` that you are aware of such a situation and that it
+But you can tell ``NaturalManager`` that you are aware of such a situation and that it
 should just take the first object found::
 
     class Person(models.Model):
         ...
         # combination of person name and city is not unique
-        objects = natural_manager('first_name', 'last_name', 'city', allow_many=True)
+        objects = NaturalManager('first_name', 'last_name', 'city', allow_many=True)
         def natural_key(self):
             return self.first_name, self.last_name, self.city
 
@@ -184,9 +184,12 @@ Side note: if ``natural_key`` consist of only one field, be sure to return a tup
 
     class MyModel(models.Model):
         ...
-        objects = natural_manager('code')
+        objects = NaturalManager('code')
         def natural_key(self):
             return self.code,  # comma makes it tuple
+
+Previously, there were ``natural_manager`` function that was used instead of ``NaturalManager``
+- however, it's deprecated.
 
 Skipping fields
 ---------------
@@ -324,7 +327,10 @@ Or raw way of manually changing synchro checkpoint::
 
 Changelog
 =========
-
+**dev**
+    - Refactored NaturalManager class so that it plays well with models involved in m2m relations
+    - Refactored NaturalManager class so that natural_manager function is deprecated
+      - it will be removed in next release
 **0.3.1** (12/09/2012)
     - ``SYNCHRO_REMOTE`` setting is not required anymore.
       Its lack will only block ``synchronize`` command

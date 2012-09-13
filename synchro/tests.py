@@ -16,7 +16,7 @@ from django.utils.unittest.case import skipUnless
 from models import ChangeLog
 import settings as synchro_settings
 from signals import DisableSynchroLog, disable_synchro_log
-from utility import natural_manager, NaturalManager, reset_synchro
+from utility import NaturalManager, reset_synchro
 
 
 LOCAL = 'default'
@@ -25,7 +25,7 @@ REMOTE = settings.SYNCHRO_REMOTE
 SETTINGS = {
     'SYNCHRO_MODELS': (
         ('synchro', 'testmodel', 'PkModelWithSkip', 'ModelWithKey', 'ModelWithFK', 'A', 'X',
-         'M2mModelWithKey', 'M2mBadModelWithKey', 'M2mAnother'),
+         'M2mModelWithKey', 'M2mAnother'),
     )
 }
 
@@ -95,7 +95,7 @@ class ModelWithKey(models.Model):
     cash = models.IntegerField(default=0)
     visits = models.PositiveIntegerField(default=0)
     SYNCHRO_SKIP = ('visits',)
-    objects = natural_manager('name', manager=CustomManager)
+    objects = NaturalManager('name', manager=CustomManager)
 
     def natural_key(self):
         return self.name,
@@ -103,17 +103,7 @@ class ModelWithKey(models.Model):
 
 class M2mModelWithKey(models.Model):
     foo = models.IntegerField(default=1)
-    objects = natural_manager('foo')
-
-    def natural_key(self):
-        return self.foo,
-
-
-class M2mBadModelWithKey(models.Model):
-    foo = models.IntegerField(default=1)
-    # don't do that: use natural_manager instead of NaturalManager
-    # See test_natural_manager to see why
-    objects = NaturalManager(fields=('foo',), allow_many=False)
+    objects = NaturalManager('foo')
 
     def natural_key(self):
         return self.foo,
@@ -122,7 +112,6 @@ class M2mBadModelWithKey(models.Model):
 class M2mAnother(models.Model):
     bar = models.IntegerField(default=1)
     m2m = models.ManyToManyField('M2mModelWithKey')
-    m2m2 = models.ManyToManyField('M2mBadModelWithKey')
 
 
 class A(models.Model):
@@ -448,7 +437,7 @@ class AdvancedSynchroTests(SynchroTests):
     """Cover additional features."""
 
     def test_manager_class(self):
-        """Test if natural_manager works."""
+        """Test if NaturalManager works."""
         self.assertIsInstance(ModelWithKey.objects, NaturalManager)
         # Test if it subclasses user manager as well
         self.assertIsInstance(ModelWithKey.objects, CustomManager)
@@ -465,15 +454,15 @@ class AdvancedSynchroTests(SynchroTests):
 
             class X(models.Model):
                 x = models.IntegerField()
-                objects = natural_manager('x', manager=BadManager)
+                objects = NaturalManager('x', manager=BadManager)
         self.assertRaises(ValidationError, wrong)  # User manager must subclass Manager
 
         # Test if manager without fields raises exception
         def wrong2():
             class X(models.Model):
                 x = models.IntegerField()
-                objects = NaturalManager()  # direct use of class and without fields specified
-        self.assertRaises(AssertionError, wrong2)  # manager without fields specified
+                objects = NaturalManager()
+        self.assertRaises(AssertionError, wrong2)
 
     def test_natural_key(self):
         """
@@ -614,8 +603,3 @@ class M2MSynchroTests(SynchroTests):
         obj = M2mAnother.objects.create()
         obj.m2m.add(test)  # this would fail if NaturalManager could not be instantiated
         self.assertEqual(test.pk, obj.m2m.get_by_natural_key(1).pk)
-        with self.assertRaises(AssertionError):
-            # m2m2 is related to M2mBadModelWithKey, which use plain NaturalManager.
-            # Accessing m2m2 will result in exception since no fields are passed to Manager's
-            # constructor.
-            obj.m2m2
