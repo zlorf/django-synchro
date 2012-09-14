@@ -331,7 +331,7 @@ Changelog
     - Refactored NaturalManager class so that it plays well with models involved in m2m relations
     - Refactored NaturalManager class so that natural_manager function is deprecated
       - it will be removed in next release
-    - Added 1 test regarding m2m aspects
+    - Added 2 tests regarding m2m aspects
 **0.3.1** (12/09/2012)
     - ``SYNCHRO_REMOTE`` setting is not required anymore.
       Its lack will only block ``synchronize`` command

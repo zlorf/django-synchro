@@ -111,7 +111,7 @@ class M2mModelWithKey(models.Model):
 
 class M2mAnother(models.Model):
     bar = models.IntegerField(default=1)
-    m2m = models.ManyToManyField('M2mModelWithKey')
+    m2m = models.ManyToManyField('M2mModelWithKey', related_name='r_m2m')
 
 
 class A(models.Model):
@@ -603,3 +603,18 @@ class M2MSynchroTests(SynchroTests):
         obj = M2mAnother.objects.create()
         obj.m2m.add(test)  # this would fail if NaturalManager could not be instantiated
         self.assertEqual(test.pk, obj.m2m.get_by_natural_key(1).pk)
+
+    def test_simple_m2m(self):
+        test = M2mModelWithKey.objects.create()
+        a = M2mAnother.objects.create()
+        a.m2m.add(test)
+        self.synchronize()
+        self.assertRemoteCount(1, M2mAnother)
+        self.assertRemoteCount(1, M2mModelWithKey)
+        b = M2mAnother.objects.db_manager(REMOTE).all()[0]
+        k = M2mModelWithKey.objects.db_manager(REMOTE).all()[0]
+        self.assertEqual(1, b.m2m.count())
+        self.assertEqual(1, k.r_m2m.count())
+        b_k = b.m2m.all()[0]
+        self.assertEqual(b_k.pk, k.pk)
+        self.assertEqual(b_k.foo, k.foo)
