@@ -25,7 +25,7 @@ REMOTE = settings.SYNCHRO_REMOTE
 SETTINGS = {
     'SYNCHRO_MODELS': (
         ('synchro', 'testmodel', 'PkModelWithSkip', 'ModelWithKey', 'ModelWithFK', 'A', 'X',
-         'M2mModelWithKey', 'M2mAnother'),
+         'M2mModelWithKey', 'M2mAnother', 'M2mModelWithInter'),
     )
 }
 
@@ -112,6 +112,23 @@ class M2mModelWithKey(models.Model):
 class M2mAnother(models.Model):
     bar = models.IntegerField(default=1)
     m2m = models.ManyToManyField('M2mModelWithKey', related_name='r_m2m')
+
+
+class M2mModelWithInter(models.Model):
+    bar = models.IntegerField(default=1)
+    m2m = models.ManyToManyField('M2mModelWithKey', related_name='r_m2m_i', through='M2mIntermediate')
+
+
+class M2mNotExplicitlySynced(models.Model):
+    # This model is not listed in SYNCHRO_MODELS
+    foo = models.IntegerField(default=1)
+
+
+class M2mIntermediate(models.Model):
+    with_key = models.ForeignKey(M2mModelWithKey)
+    with_inter = models.ForeignKey(M2mModelWithInter)
+    extra = models.ForeignKey(M2mNotExplicitlySynced)  # to get everything worse, use another FK here
+    cash = models.IntegerField()
 
 
 class A(models.Model):
@@ -618,3 +635,27 @@ class M2MSynchroTests(SynchroTests):
         b_k = b.m2m.all()[0]
         self.assertEqual(b_k.pk, k.pk)
         self.assertEqual(b_k.foo, k.foo)
+
+    def test_intermediary_m2m(self):
+        test = M2mNotExplicitlySynced.objects.create(foo=77)
+        key = M2mModelWithKey.objects.create()
+        a = M2mModelWithInter.objects.create()
+        M2mIntermediate.objects.create(with_key=key, with_inter=a, cash=42, extra=test)
+        self.assertEqual(1, a.m2m.count())
+        self.assertEqual(1, key.r_m2m_i.count())
+        self.synchronize()
+        self.assertRemoteCount(1, M2mNotExplicitlySynced)
+        self.assertRemoteCount(1, M2mModelWithKey)
+        self.assertRemoteCount(1, M2mModelWithInter)
+        b = M2mModelWithInter.objects.db_manager(REMOTE).all()[0]
+        k = M2mModelWithKey.objects.db_manager(REMOTE).all()[0]
+        self.assertEqual(1, b.m2m.count())
+        self.assertEqual(1, k.r_m2m_i.count())
+        b_k = b.m2m.all()[0]
+        self.assertEqual(b_k.pk, k.pk)
+        self.assertEqual(b_k.foo, k.foo)
+        # intermediary
+        self.assertRemoteCount(1, M2mIntermediate)
+        inter = M2mIntermediate.objects.all()[0]
+        self.assertEqual(42, inter.cash)
+        self.assertEqual(77, inter.extra.foo)  # check if extra FK model get synced

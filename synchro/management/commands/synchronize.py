@@ -73,10 +73,19 @@ def save_with_fks(ct, obj, new_pk):
     for f in obj._meta.many_to_many:
         fk_ct = ContentType.objects.get_for_model(f.rel.to)
         out = []
-        for fk_id in f.value_from_object(obj).using(LOCAL).values_list('pk', flat=True):
-            rem, _ = ensure_exist(fk_ct, fk_id)
-            out.append(rem)
-        _m2m[f] = out
+        if f.rel.through._meta.auto_created:
+            for fk_id in f.value_from_object(obj).using(LOCAL).values_list('pk', flat=True):
+                rem, _ = ensure_exist(fk_ct, fk_id)
+                out.append(rem)
+        else:
+            # some intermediate model is used for this m2m
+            me = f.m2m_field_name()
+            he_id = '%s_id' % f.m2m_reverse_field_name()
+            inters = f.rel.through.objects.filter(**{me: obj}).using(LOCAL)
+            for inter in inters:
+                ensure_exist(fk_ct, getattr(inter, he_id))
+                out.append(inter)
+        _m2m[f] = not f.rel.through._meta.auto_created, out
 
     obj.pk = new_pk
     obj.save(using=REMOTE)
@@ -86,8 +95,15 @@ def save_with_fks(ct, obj, new_pk):
         r.remote_object_id = obj.pk
         r.save()
 
-    for f, out in _m2m.iteritems():
-        f.save_form_data(obj, out)
+    for f, (intermediary, out) in _m2m.iteritems():
+        if not intermediary:
+            f.save_form_data(obj, out)
+        else:
+            getattr(obj, f.attname).clear()
+            for inter in out:
+                # we don't need to set any of objects on inter. References will do it all.
+                ct = ContentType.objects.get_for_model(inter)
+                save_with_fks(ct, inter, None)
 
 
 def create_with_fks(ct, obj, pk):
@@ -118,8 +134,8 @@ def ensure_exist(ct, id):
         return rem, ref
     rem = find_natural(ct, obj)
     if rem is not None:
-        # maybe create ref?
-        return rem, None
+        ref = Reference.create(content_type=ct, local_object_id=id, remote_object_id=rem.pk)
+        return rem, ref
     return perform_add(ct, id)
 
 
