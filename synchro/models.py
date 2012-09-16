@@ -59,9 +59,7 @@ def save_changelog_add_chg(sender, instance, created, using, **kwargs):
 
 def save_changelog_del(sender, instance, using, **kwargs):
     if sender in settings.MODELS and using == settings.LOCAL:
-        ct = ContentType.objects.get_for_model(instance)
-        id = instance.pk
-        cl = ChangeLog.objects.create(content_type=ct, object_id=id, action=DELETION)
+        cl = ChangeLog.objects.create(object=instance, action=DELETION)
         try:
             k = repr(instance.natural_key())
             DeleteKey.objects.create(changelog=cl, key=k)
