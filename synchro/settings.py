@@ -30,7 +30,18 @@ def parse_models(l):
     return res
 
 
+def get_intermediary(models):
+    res = {}
+    for model in models:
+        res.update((m2m.rel.through, m2m.related) for m2m in model._meta.many_to_many
+                   if not m2m.rel.through._meta.auto_created)
+    return res
+
+
 MODELS = parse_models(getattr(settings, 'SYNCHRO_MODELS', ()))
+# Since user-defined m2m intermediary objects don't send m2m_changed signal, we need to listen to
+# those models.
+INTER_MODELS = get_intermediary(MODELS)
 REMOTE = getattr(settings, 'SYNCHRO_REMOTE', None)
 LOCAL = 'default'
 

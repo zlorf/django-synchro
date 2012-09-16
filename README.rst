@@ -332,6 +332,7 @@ Changelog
     - Refactored NaturalManager class so that it plays well with models involved in m2m relations
     - Refactored NaturalManager class so that natural_manager function is unnecessary
     - Fixed bug with m2m user-defined intermediary table synchronization
+    - Fixed bugs with m2m changes synchronization
     - Added 3 tests regarding m2m aspects
 **0.3.1** (12/09/2012)
     - ``SYNCHRO_REMOTE`` setting is not required anymore.

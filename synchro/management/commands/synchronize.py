@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from synchro.models import Reference, ChangeLog, DeleteKey, options as app_options
-from synchro.models import ADDITION, CHANGE, DELETION
+from synchro.models import ADDITION, CHANGE, DELETION, M2M_CHANGE
 from synchro.settings import REMOTE, LOCAL
 
 
@@ -57,7 +57,10 @@ def is_remote_newer(loc, rem):
 
 
 def save_with_fks(ct, obj, new_pk):
-    """Saves object in REMOTE, ensuring that every of it fk/m2m is present in REMOTE."""
+    """
+    Saves object in REMOTE, ensuring that every of it fk is present in REMOTE.
+    Many-to-many relations are handled separately.
+    """
     old_id = obj.pk
     obj._state.db = REMOTE
 
@@ -69,24 +72,6 @@ def save_with_fks(ct, obj, new_pk):
             rem, _ = ensure_exist(fk_ct, fk_id)
             f.save_form_data(obj, rem)
 
-    _m2m = {}
-    for f in obj._meta.many_to_many:
-        fk_ct = ContentType.objects.get_for_model(f.rel.to)
-        out = []
-        if f.rel.through._meta.auto_created:
-            for fk_id in f.value_from_object(obj).using(LOCAL).values_list('pk', flat=True):
-                rem, _ = ensure_exist(fk_ct, fk_id)
-                out.append(rem)
-        else:
-            # some intermediate model is used for this m2m
-            me = f.m2m_field_name()
-            he_id = '%s_id' % f.m2m_reverse_field_name()
-            inters = f.rel.through.objects.filter(**{me: obj}).using(LOCAL)
-            for inter in inters:
-                ensure_exist(fk_ct, getattr(inter, he_id))
-                out.append(inter)
-        _m2m[f] = not f.rel.through._meta.auto_created, out
-
     obj.pk = new_pk
     obj.save(using=REMOTE)
     r, n = Reference.objects.get_or_create(content_type=ct, local_object_id=old_id,
@@ -95,11 +80,50 @@ def save_with_fks(ct, obj, new_pk):
         r.remote_object_id = obj.pk
         r.save()
 
+M2M_CACHE = {}
+
+
+def save_m2m(ct, obj, remote):
+    """Synchronize m2m fields from obj to remote."""
+    model_name = obj.__class__
+
+    if model_name not in M2M_CACHE:
+        # collect m2m fields information: both direct and reverse
+        res = {}
+        for f in obj._meta.many_to_many:
+            me = f.m2m_field_name()
+            he_id = '%s_id' % f.m2m_reverse_field_name()
+            res[f.attname] = (f.rel.to, f.rel.through, me, he_id)
+        for rel in obj._meta.get_all_related_many_to_many_objects():
+            f = rel.field
+            me = f.m2m_reverse_field_name()
+            he_id = '%s_id' % f.m2m_field_name()
+            res[rel.get_accessor_name()] = (rel.model, f.rel.through, me, he_id)
+        M2M_CACHE[model_name] = res
+
+    _m2m = {}
+
+    # handle m2m fields
+    for f, (to, through, me, he_id) in M2M_CACHE[model_name].iteritems():
+        fk_ct = ContentType.objects.get_for_model(to)
+        out = []
+        if through._meta.auto_created:
+            for fk_id in getattr(obj, f).using(LOCAL).values_list('pk', flat=True):
+                rem, _ = ensure_exist(fk_ct, fk_id)
+                out.append(rem)
+        else:
+            # some intermediate model is used for this m2m
+            inters = through.objects.filter(**{me: obj}).using(LOCAL)
+            for inter in inters:
+                ensure_exist(fk_ct, getattr(inter, he_id))
+                out.append(inter)
+        _m2m[f] = not through._meta.auto_created, out
+
     for f, (intermediary, out) in _m2m.iteritems():
         if not intermediary:
-            f.save_form_data(obj, out)
+            setattr(remote, f, out)
         else:
-            getattr(obj, f.attname).clear()
+            getattr(remote, f).clear()
             for inter in out:
                 # we don't need to set any of objects on inter. References will do it all.
                 ct = ContentType.objects.get_for_model(inter)
@@ -180,10 +204,23 @@ def perform_del(ct, id, log):
         pass
 
 
+def perform_m2m(ct, id, log=None):
+    obj = ct.get_object_for_this_type(pk=id)
+    rem, ref = find_ref(ct, obj.pk)
+    if rem is not None:
+        return save_m2m(ct, obj, rem)
+    rem = find_natural(ct, obj)
+    if rem is not None:
+        return save_m2m(ct, obj, rem)
+    rem, _ = perform_add(ct, id)
+    return save_m2m(ct, obj, rem)
+
+
 ACTIONS = {
-    ADDITION: perform_add,
-    CHANGE:   perform_chg,
-    DELETION: perform_del,
+    ADDITION:   perform_add,
+    CHANGE:     perform_chg,
+    DELETION:   perform_del,
+    M2M_CHANGE: perform_m2m,
 }
 
 

@@ -116,7 +116,8 @@ class M2mAnother(models.Model):
 
 class M2mModelWithInter(models.Model):
     bar = models.IntegerField(default=1)
-    m2m = models.ManyToManyField('M2mModelWithKey', related_name='r_m2m_i', through='M2mIntermediate')
+    m2m = models.ManyToManyField('M2mModelWithKey', related_name='r_m2m_i',
+                                 through='M2mIntermediate')
 
 
 class M2mNotExplicitlySynced(models.Model):
@@ -127,7 +128,8 @@ class M2mNotExplicitlySynced(models.Model):
 class M2mIntermediate(models.Model):
     with_key = models.ForeignKey(M2mModelWithKey)
     with_inter = models.ForeignKey(M2mModelWithInter)
-    extra = models.ForeignKey(M2mNotExplicitlySynced)  # to get everything worse, use another FK here
+    # To get everything worse, use another FK here, in order to test intermediate sync.
+    extra = models.ForeignKey(M2mNotExplicitlySynced)
     cash = models.IntegerField()
 
 
@@ -616,14 +618,18 @@ class M2MSynchroTests(SynchroTests):
     """Cover many2many relations tests."""
 
     def test_natural_manager(self):
+        """Test if natural manager can be instantiated when using M2M."""
         test = M2mModelWithKey.objects.create()
         obj = M2mAnother.objects.create()
         obj.m2m.add(test)  # this would fail if NaturalManager could not be instantiated
         self.assertEqual(test.pk, obj.m2m.get_by_natural_key(1).pk)
 
     def test_simple_m2m(self):
+        """Test if m2m field is synced properly."""
         test = M2mModelWithKey.objects.create()
         a = M2mAnother.objects.create()
+
+        # add
         a.m2m.add(test)
         self.synchronize()
         self.assertRemoteCount(1, M2mAnother)
@@ -636,7 +642,47 @@ class M2MSynchroTests(SynchroTests):
         self.assertEqual(b_k.pk, k.pk)
         self.assertEqual(b_k.foo, k.foo)
 
+        # clear
+        self.wait()
+        a.m2m.clear()
+        self.synchronize()
+        self.assertEqual(0, b.m2m.count())
+        self.assertEqual(0, k.r_m2m.count())
+
+        # reverse add
+        self.wait()
+        a2 = M2mAnother.objects.create(bar=2)
+        test.r_m2m.add(a, a2)
+        self.synchronize()
+        self.assertRemoteCount(2, M2mAnother)
+        self.assertRemoteCount(1, M2mModelWithKey)
+        b2 = M2mAnother.objects.db_manager(REMOTE).filter(bar=2)[0]
+        self.assertEqual(1, b.m2m.count())
+        self.assertEqual(1, b2.m2m.count())
+        self.assertEqual(2, k.r_m2m.count())
+
+        # reverse remove
+        self.wait()
+        test.r_m2m.remove(a)
+        self.synchronize()
+        self.assertRemoteCount(2, M2mAnother)
+        self.assertRemoteCount(1, M2mModelWithKey)
+        self.assertEqual(0, b.m2m.count())
+        self.assertEqual(1, b2.m2m.count())
+        self.assertEqual(1, k.r_m2m.count())
+
+        # reverse clear
+        self.wait()
+        test.r_m2m.clear()
+        self.synchronize()
+        self.assertRemoteCount(2, M2mAnother)
+        self.assertRemoteCount(1, M2mModelWithKey)
+        self.assertEqual(0, b.m2m.count())
+        self.assertEqual(0, b2.m2m.count())
+        self.assertEqual(0, k.r_m2m.count())
+
     def test_intermediary_m2m(self):
+        """Test if m2m field with explicit intermediary is synced properly."""
         test = M2mNotExplicitlySynced.objects.create(foo=77)
         key = M2mModelWithKey.objects.create()
         a = M2mModelWithInter.objects.create()
@@ -654,8 +700,53 @@ class M2MSynchroTests(SynchroTests):
         b_k = b.m2m.all()[0]
         self.assertEqual(b_k.pk, k.pk)
         self.assertEqual(b_k.foo, k.foo)
+        self.assertEqual(1, b.m2m.all()[0].foo)
         # intermediary
         self.assertRemoteCount(1, M2mIntermediate)
-        inter = M2mIntermediate.objects.all()[0]
+        inter = M2mIntermediate.objects.db_manager(REMOTE).all()[0]
         self.assertEqual(42, inter.cash)
         self.assertEqual(77, inter.extra.foo)  # check if extra FK model get synced
+
+        # changing
+        self.wait()
+        key2 = M2mModelWithKey.objects.create(foo=42)
+        a.m2m.clear()
+        M2mIntermediate.objects.create(with_key=key2, with_inter=a, cash=77, extra=test)
+        self.synchronize()
+        self.assertRemoteCount(1, M2mNotExplicitlySynced)
+        self.assertRemoteCount(2, M2mModelWithKey)
+        self.assertRemoteCount(1, M2mModelWithInter)
+        b = M2mModelWithInter.objects.db_manager(REMOTE).all()[0]
+        self.assertEqual(1, b.m2m.count())
+        self.assertEqual(42, b.m2m.all()[0].foo)
+        # intermediary
+        self.assertRemoteCount(1, M2mIntermediate)
+        inter = M2mIntermediate.objects.db_manager(REMOTE).all()[0]
+        self.assertEqual(77, inter.cash)
+
+        # intermadiate change
+        self.wait()
+        inter = M2mIntermediate.objects.all()[0]
+        inter.cash = 1
+        inter.save()
+        self.synchronize()
+        # No changes here
+        self.assertRemoteCount(1, M2mNotExplicitlySynced)
+        self.assertRemoteCount(2, M2mModelWithKey)
+        self.assertRemoteCount(1, M2mModelWithInter)
+        b = M2mModelWithInter.objects.db_manager(REMOTE).all()[0]
+        self.assertEqual(1, b.m2m.count())
+        self.assertEqual(42, b.m2m.all()[0].foo)
+        # Still one intermediary
+        self.assertRemoteCount(1, M2mIntermediate)
+        inter = M2mIntermediate.objects.db_manager(REMOTE).all()[0]
+        self.assertEqual(1, inter.cash)
+
+
+        # Tricky: clear from other side of relation.
+        self.wait()
+        key2.r_m2m_i.clear()
+        self.synchronize()
+        b = M2mModelWithInter.objects.db_manager(REMOTE).all()[0]
+        self.assertEqual(0, b.m2m.count())
+        self.assertRemoteCount(0, M2mIntermediate)
