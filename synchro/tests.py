@@ -16,7 +16,7 @@ from django.utils.unittest.case import skipUnless
 from models import ChangeLog
 import settings as synchro_settings
 from signals import DisableSynchroLog, disable_synchro_log
-from utility import NaturalManager, reset_synchro
+from utility import NaturalManager, reset_synchro, NaturalKeyModel
 
 
 LOCAL = 'default'
@@ -90,15 +90,14 @@ class CustomManager(models.Manager):
         return 'Not a single object!'
 
 
-class ModelWithKey(models.Model):
+class ModelWithKey(NaturalKeyModel):
     name = models.CharField(max_length=10)
     cash = models.IntegerField(default=0)
     visits = models.PositiveIntegerField(default=0)
     SYNCHRO_SKIP = ('visits',)
-    objects = NaturalManager('name', manager=CustomManager)
+    _natural_key = ('name',)
 
-    def natural_key(self):
-        return self.name,
+    objects = CustomManager()
 
 
 class M2mModelWithKey(models.Model):

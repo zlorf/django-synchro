@@ -147,6 +147,14 @@ To minimalize the effort of implementing a custom manager, a shortcut is provide
         def natural_key(self):
             return self.code, self.day
 
+Or even easier (effect is exactly the same)::
+
+    from synchro import NaturalKeyModel
+
+    class MyModel(NaturalKeyModel):
+        ...
+        _natural_key = ('code', 'day')
+
 ``NaturalManager`` extends the built-in Manager by default; you can change its superclass using ``manager`` keyword::
 
     from synchro import NaturalManager
@@ -160,7 +168,19 @@ To minimalize the effort of implementing a custom manager, a shortcut is provide
         def natural_key(self):
             return self.code, self.day
 
-In fact invoking ``NaturalManager`` creates a new class being ``NaturalManager``'s subclass.
+When using ``NaturalKeyModel``, ``NaturalManager`` will extend the defined (``objects``) manager::
+
+    from synchro import NaturalKeyModel
+
+    class MyVeryCustomManager(models.Manager):
+        ... # some mumbo-jumbo magic
+
+    class MyModel(NaturalKeyModel):
+        ...
+        _natural_key = ('code', 'day')
+        objects = MyVeryCustomManager()
+
+Side note: in fact invoking ``NaturalManager`` creates a new class being ``NaturalManager``'s subclass.
 
 The purpose of a natural key is to *uniquely* distinguish among model instances;
 however, there are situations where it is impossible. You can choose such fields that will cause
@@ -177,7 +197,15 @@ should just take the first object found::
         def natural_key(self):
             return self.first_name, self.last_name, self.city
 
-Don't use ``allow_many`` unless you are completly sure what you are doing and what
+Or with ``NaturalKeyModel``::
+
+    class Person(NaturalKeyModel):
+        ...
+        # combination of person name and city is not unique
+        _natural_key = ('first_name', 'last_name', 'city')
+        _natural_manager_kwargs = {'allow_many': True}  # I know, it looks quite ugly
+
+Don't use ``allow_many`` unless you are completely sure what you are doing and what
 you want to achieve.
 
 Side note: if ``natural_key`` consist of only one field, be sure to return a tuple anyway::
@@ -187,6 +215,10 @@ Side note: if ``natural_key`` consist of only one field, be sure to return a tup
         objects = NaturalManager('code')
         def natural_key(self):
             return self.code,  # comma makes it tuple
+
+Or to assign tuple in ``NaturalKeyModel``::
+
+    _natural_key = ('code',)
 
 Previously, there were ``natural_manager`` function that was used instead of ``NaturalManager``
 - however, it's deprecated.
@@ -331,6 +363,7 @@ Changelog
     - **Deprecation**: natural_manager function is deprecated. Use NaturalManager instead
     - Refactored NaturalManager class so that it plays well with models involved in m2m relations
     - Refactored NaturalManager class so that natural_manager function is unnecessary
+    - Added NaturalKeyModel base class
     - Fixed bug with m2m user-defined intermediary table synchronization
     - Fixed bugs with m2m changes synchronization
     - Added 3 tests regarding m2m aspects

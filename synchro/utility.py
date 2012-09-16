@@ -1,7 +1,8 @@
 from datetime import datetime
 
 from django.core.exceptions import MultipleObjectsReturned, ValidationError
-from django.db.models import Manager
+from django.db.models import Manager, Model
+from django.db.models.base import ModelBase
 
 
 class NaturalManager(Manager):
@@ -52,6 +53,30 @@ def natural_manager(*args, **kwargs):
     import warnings
     warnings.warn('natural_manager function is deprecated - use NaturalManager instead.', DeprecationWarning)
     return NaturalManager(*args, **kwargs)
+
+
+class _NaturalKeyModelBase(ModelBase):
+    def __new__(cls, name, bases, attrs):
+        parents = [b for b in bases if isinstance(b, _NaturalKeyModelBase)]
+        if not parents:
+            return super(_NaturalKeyModelBase, cls).__new__(cls, name, bases, attrs)
+        kwargs = {}
+        if 'objects' in attrs:
+            kwargs['manager'] = attrs['objects'].__class__
+        kwargs.update(attrs.pop('_natural_manager_kwargs', {}))
+        attrs['objects'] = NaturalManager(*attrs['_natural_key'], **kwargs)
+        return super(_NaturalKeyModelBase, cls).__new__(cls, name, bases, attrs)
+
+
+class NaturalKeyModel(Model):
+    __metaclass__ = _NaturalKeyModelBase
+    _natural_key = ()
+
+    def natural_key(self):
+        return tuple(getattr(self, field) for field in self._natural_key)
+
+    class Meta:
+        abstract = True
 
 
 def reset_synchro():
