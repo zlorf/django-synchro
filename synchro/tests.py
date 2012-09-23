@@ -25,7 +25,7 @@ REMOTE = settings.SYNCHRO_REMOTE
 SETTINGS = {
     'SYNCHRO_MODELS': (
         ('synchro', 'testmodel', 'PkModelWithSkip', 'ModelWithKey', 'ModelWithFK', 'A', 'X',
-         'M2mModelWithKey', 'M2mAnother', 'M2mModelWithInter'),
+         'M2mModelWithKey', 'M2mAnother', 'M2mModelWithInter', 'M2mSelf'),
     )
 }
 
@@ -130,6 +130,11 @@ class M2mIntermediate(models.Model):
     # To get everything worse, use another FK here, in order to test intermediate sync.
     extra = models.ForeignKey(M2mNotExplicitlySynced)
     cash = models.IntegerField()
+
+
+class M2mSelf(models.Model):
+    foo = models.IntegerField(default=1)
+    m2m = models.ManyToManyField('self')
 
 
 class A(models.Model):
@@ -749,3 +754,27 @@ class M2MSynchroTests(SynchroTests):
         b = M2mModelWithInter.objects.db_manager(REMOTE).all()[0]
         self.assertEqual(0, b.m2m.count())
         self.assertRemoteCount(0, M2mIntermediate)
+
+    def test_self_m2m(self):
+        """Test if m2m symmetrical field is synced properly."""
+        test = M2mSelf.objects.create(foo=42)
+        a = M2mSelf.objects.create(foo=1)
+
+        # add
+        a.m2m.add(test)
+        self.synchronize()
+        self.assertRemoteCount(2, M2mSelf)
+        b = M2mSelf.objects.db_manager(REMOTE).get(foo=1)
+        k = M2mSelf.objects.db_manager(REMOTE).get(foo=42)
+        self.assertEqual(1, b.m2m.count())
+        self.assertEqual(1, k.m2m.count())
+        b_k = b.m2m.all()[0]
+        self.assertEqual(b_k.pk, k.pk)
+        self.assertEqual(b_k.foo, k.foo)
+
+        # clear
+        self.wait()
+        a.m2m.clear()
+        self.synchronize()
+        self.assertEqual(0, b.m2m.count())
+        self.assertEqual(0, k.m2m.count())

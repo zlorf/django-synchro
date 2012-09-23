@@ -359,6 +359,9 @@ Or raw way of manually changing synchro checkpoint::
 
 Changelog
 =========
+**0.4.1** (23/09/2012)
+    - Fixed symmetrical m2m synchronization
+    - Added 1 test regarding the issue above
 **0.4** (16/09/2012)
     - **Deprecation**: natural_manager function is deprecated. Use NaturalManager instead
     - Refactored NaturalManager class so that it plays well with models involved in m2m relations

@@ -96,6 +96,9 @@ def save_m2m(ct, obj, remote):
             res[f.attname] = (f.rel.to, f.rel.through, me, he_id)
         for rel in obj._meta.get_all_related_many_to_many_objects():
             f = rel.field
+            if rel.get_accessor_name() is None:
+                # In case of symmetrical relation
+                continue
             me = f.m2m_reverse_field_name()
             he_id = '%s_id' % f.m2m_field_name()
             res[rel.get_accessor_name()] = (rel.model, f.rel.through, me, he_id)
