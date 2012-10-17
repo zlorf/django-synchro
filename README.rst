@@ -357,8 +357,11 @@ Or raw way of manually changing synchro checkpoint::
 
     options.last_check = datetime.datetime.now()  # or any time you wish
 
+----------
+
 Changelog
 =========
+
 **0.4.1** (23/09/2012)
     - Fixed symmetrical m2m synchronization
     - Added 1 test regarding the issue above
