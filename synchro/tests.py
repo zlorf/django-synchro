@@ -228,6 +228,26 @@ class SimpleSynchroTests(SynchroTests):
         self.assertIn(PkModelWithSkip, synchro_settings.MODELS)
         self.assertNotIn(ChangeLog, synchro_settings.MODELS)
 
+    def test_app_paths(self):
+        """Check if app in SYNCHRO_MODELS can be stated in any way."""
+        from django.contrib.auth.models import User
+        self.assertNotIn(User, synchro_settings.MODELS)
+
+        INSTALLED_APPS = settings.INSTALLED_APPS + ('django.contrib.auth',)
+        with override_settings(INSTALLED_APPS=INSTALLED_APPS):
+            # fully qualified path
+            with override_settings(SYNCHRO_MODELS=('django.contrib.auth',)):
+                reload(synchro_settings)
+                self.assertIn(User, synchro_settings.MODELS)
+            # app label
+            with override_settings(SYNCHRO_MODELS=('auth',)):
+                reload(synchro_settings)
+                self.assertIn(User, synchro_settings.MODELS)
+
+        # Restore previous state
+        reload(synchro_settings)
+        self.assertNotIn(User, synchro_settings.MODELS)
+
     def test_settings_with_invalid_remote(self):
         """Check if specifying invalid remote results in exception."""
         with override_settings(SYNCHRO_REMOTE='invalid'):

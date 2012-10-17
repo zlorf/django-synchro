@@ -60,6 +60,8 @@ Installation
         'my_first_app', # all models from my_first_app
         ('my_second_app', 'model1', 'model2'), # only listed models (letter case doesn't matter)
         'my_third_app', # all models again
+        'django.contrib.sites', # you may specify fully qualified name...
+        'auth',                 # or just app label
     )
 
 Later, `REMOTE` will mean `remote database`.
@@ -362,6 +364,8 @@ Or raw way of manually changing synchro checkpoint::
 Changelog
 =========
 
+**dev**
+    - Fixed issue with app loading (thanks to Alexander Todorov for reporting)
 **0.4.1** (23/09/2012)
     - Fixed symmetrical m2m synchronization
     - Added 1 test regarding the issue above

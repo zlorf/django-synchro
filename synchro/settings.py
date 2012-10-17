@@ -1,10 +1,14 @@
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.db.models import get_app, get_models, get_model
+from django.db.models.loading import get_app, get_models, get_model, load_app
 
 
 def get_all_models(app):
-    return get_models(get_app(app))
+    try:
+        app_mod = load_app(app) # First try full path
+    except ImportError:
+        app_mod = get_app(app) # Then try just app_label
+    return get_models(app_mod)
 
 
 def gel_listed_models(app, l):
