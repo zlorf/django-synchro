@@ -364,8 +364,9 @@ Or raw way of manually changing synchro checkpoint::
 Changelog
 =========
 
-**dev**
+**0.4.2** (18/10/2012)
     - Fixed issue with app loading (thanks to Alexander Todorov for reporting)
+    - Added 1 test regarding the issue above
 **0.4.1** (23/09/2012)
     - Fixed symmetrical m2m synchronization
     - Added 1 test regarding the issue above
