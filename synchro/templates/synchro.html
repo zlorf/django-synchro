@@ -1,5 +1,6 @@
 {% extends "admin/base_site.html" %}
 {% load i18n admin_modify %}
+{% load url from future %}
 
 {% block coltype %}colMS{% endblock %}
 
@@ -7,7 +8,7 @@
 
 {% block breadcrumbs %}{% if not is_popup %}
 <div class="breadcrumbs">
-    <a href="{% url admin:index %}">{% trans "Home" %}</a> &rsaquo;
+    <a href="{% url 'admin:index' %}">{% trans "Home" %}</a> &rsaquo;
     {% trans "Synchronization" %}
 </div>
 {% endif %}{% endblock %}

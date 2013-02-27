@@ -1,7 +1,7 @@
 import datetime
 
+from django import get_version
 from django.conf import settings
-from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError, ImproperlyConfigured
 from django.core.management import call_command, CommandError
 from django.core.urlresolvers import reverse
@@ -18,6 +18,20 @@ import settings as synchro_settings
 from signals import DisableSynchroLog, disable_synchro_log
 from utility import NaturalManager, reset_synchro, NaturalKeyModel
 
+if get_version() >= '1.5':
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+
+    def user_model_quite_standard():
+        "Check if installed User object is not too custom for the tests to instantiate it."
+        from django.contrib.auth.models import User as StandardUser
+        if (User.USERNAME_FIELD == StandardUser.USERNAME_FIELD and
+            User.REQUIRED_FIELDS == StandardUser.REQUIRED_FIELDS):
+            return True
+        return False
+else:
+    from django.contrib.auth.models import User
+    user_model_quite_standard = lambda: True
 
 LOCAL = 'default'
 REMOTE = settings.SYNCHRO_REMOTE
@@ -230,23 +244,23 @@ class SimpleSynchroTests(SynchroTests):
 
     def test_app_paths(self):
         """Check if app in SYNCHRO_MODELS can be stated in any way."""
-        from django.contrib.auth.models import User
-        self.assertNotIn(User, synchro_settings.MODELS)
+        from django.contrib.auth.models import Group
+        self.assertNotIn(Group, synchro_settings.MODELS)
 
         INSTALLED_APPS = settings.INSTALLED_APPS + ('django.contrib.auth',)
         with override_settings(INSTALLED_APPS=INSTALLED_APPS):
             # fully qualified path
             with override_settings(SYNCHRO_MODELS=('django.contrib.auth',)):
                 reload(synchro_settings)
-                self.assertIn(User, synchro_settings.MODELS)
+                self.assertIn(Group, synchro_settings.MODELS)
             # app label
             with override_settings(SYNCHRO_MODELS=('auth',)):
                 reload(synchro_settings)
-                self.assertIn(User, synchro_settings.MODELS)
+                self.assertIn(Group, synchro_settings.MODELS)
 
         # Restore previous state
         reload(synchro_settings)
-        self.assertNotIn(User, synchro_settings.MODELS)
+        self.assertNotIn(Group, synchro_settings.MODELS)
 
     def test_settings_with_invalid_remote(self):
         """Check if specifying invalid remote results in exception."""
@@ -457,10 +471,11 @@ class SimpleSynchroTests(SynchroTests):
 
     @skipUnless(contrib_apps('admin', 'auth', 'sessions'),
                 'admin, auth or sessions not in INSTALLED_APPS')
+    @skipUnless(user_model_quite_standard(), 'Too custom User model')
     def test_admin(self):
         """Test if synchronization can be performed via admin interface."""
         path = reverse('synchro')
-        user = User.objects.create_user('admin', 'mail', 'admin')
+        user = User._default_manager.create_user('admin', 'mail', 'admin')
         self.client.login(username='admin', password='admin')
         # test if staff status is required
         self.assertTemplateUsed(self.client.get(path), 'admin/login.html')

@@ -12,7 +12,7 @@ setup(
     license='MIT',
     install_requires=(
         'django-dbsettings>=0.1',
-        'django>=1.3',
+        'django>=1.4',
     ),
     classifiers=[
         'Development Status :: 4 - Beta',
