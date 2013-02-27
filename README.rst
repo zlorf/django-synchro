@@ -364,6 +364,11 @@ Or raw way of manually changing synchro checkpoint::
 Changelog
 =========
 
+**0.5** (27/02/2013)
+    - Refactored code to be compatible with Django 1.5
+    - Required Django version increased from 1.3 to 1.4 (the code was already using some
+      1.4-specific functions)
+    - Removed deprecated natural_manager function
 **0.4.2** (18/10/2012)
     - Fixed issue with app loading (thanks to Alexander Todorov for reporting)
     - Added 1 test regarding the issue above
