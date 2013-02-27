@@ -48,13 +48,6 @@ class NaturalManager(Manager):
         return super(NaturalManager, cls).__new__(NewNaturalManager)
 
 
-def natural_manager(*args, **kwargs):
-    """Function left for backward-compatibility"""
-    import warnings
-    warnings.warn('natural_manager function is deprecated - use NaturalManager instead.', DeprecationWarning)
-    return NaturalManager(*args, **kwargs)
-
-
 class _NaturalKeyModelBase(ModelBase):
     def __new__(cls, name, bases, attrs):
         parents = [b for b in bases if isinstance(b, _NaturalKeyModelBase)]
