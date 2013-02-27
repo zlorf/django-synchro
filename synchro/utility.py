@@ -16,6 +16,10 @@ class NaturalManager(Manager):
         """
         Creates actual manager, which can be further subclassed and instantiated without arguments.
         """
+        if not fields and hasattr(cls, 'fields') and hasattr(cls, 'allow_many'):
+            # Class was already prepared.
+            return super(NaturalManager, cls).__new__(cls)
+
         assert fields, 'No fields specified in %s constructor' % cls
         _fields = fields
         _allow_many = options.get('allow_many', False)
@@ -32,10 +36,6 @@ class NaturalManager(Manager):
             def __init__(self, *args, **kwargs):
                 # Intentionally ignore arguments
                 super(NewNaturalManager, self).__init__()
-
-            def __new__(cls, *args, **kwargs):
-                # Skip NaturalManager.__new__ because `fields` are already defined
-                return super(NaturalManager, cls).__new__(cls, *args, **kwargs)
 
             def get_by_natural_key(self, *args):
                 lookups = dict(zip(self.fields, args))
