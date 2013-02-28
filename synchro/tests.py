@@ -104,6 +104,10 @@ class CustomManager(models.Manager):
         return 'Not a single object!'
 
 
+class MyNaturalManager(NaturalManager, CustomManager):
+    fields = ('name',)
+
+
 class ModelWithKey(NaturalKeyModel):
     name = models.CharField(max_length=10)
     cash = models.IntegerField(default=0)
@@ -112,6 +116,7 @@ class ModelWithKey(NaturalKeyModel):
     _natural_key = ('name',)
 
     objects = CustomManager()
+    another_objects = MyNaturalManager()
 
 
 class M2mModelWithKey(models.Model):
@@ -497,13 +502,31 @@ class AdvancedSynchroTests(SynchroTests):
     def test_manager_class(self):
         """Test if NaturalManager works."""
         self.assertIsInstance(ModelWithKey.objects, NaturalManager)
+        self.assertIsInstance(ModelWithKey.another_objects, NaturalManager)
         # Test if it subclasses user manager as well
         self.assertIsInstance(ModelWithKey.objects, CustomManager)
+        self.assertIsInstance(ModelWithKey.another_objects, CustomManager)
         self.assertEqual('bar', ModelWithKey.objects.foo())
+        self.assertEqual('bar', ModelWithKey.another_objects.foo())
         # Check proper MRO: NaturalManager, user manager, Manager
         self.assertTrue(hasattr(ModelWithKey.objects, 'get_by_natural_key'))
+        self.assertTrue(hasattr(ModelWithKey.another_objects, 'get_by_natural_key'))
         self.assertEqual('Not a single object!', ModelWithKey.objects.none())
+        self.assertEqual('Not a single object!', ModelWithKey.another_objects.none())
         self.assertSequenceEqual([], ModelWithKey.objects.all())
+        self.assertSequenceEqual([], ModelWithKey.another_objects.all())
+
+        # Test get_by_natural_key
+        obj = ModelWithKey.objects.create(name='James')
+        self.assertEqual(obj.pk, ModelWithKey.objects.get_by_natural_key('James').pk)
+        self.assertEqual(obj.pk, ModelWithKey.another_objects.get_by_natural_key('James').pk)
+
+        # Test instantiating (DJango #13313: manager must be instantiable without arguments)
+        try:
+            ModelWithKey.objects.__class__()
+            ModelWithKey.another_objects.__class__()
+        except TypeError:
+            self.fail('Cannot instantiate.')
 
         # Test if class checking occurs
         def wrong():

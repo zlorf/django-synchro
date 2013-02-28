@@ -11,6 +11,16 @@ class NaturalManager(Manager):
     Hence this machinery to store arguments in class.
     Somehow related to Django bug #13313.
     """
+    allow_many = False
+
+    def get_by_natural_key(self, *args):
+        lookups = dict(zip(self.fields, args))
+        try:
+            return self.get(**lookups)
+        except MultipleObjectsReturned:
+            if self.allow_many:
+                return self.filter(**lookups)[0]
+            raise
 
     def __new__(cls, *fields, **options):
         """
@@ -36,15 +46,6 @@ class NaturalManager(Manager):
             def __init__(self, *args, **kwargs):
                 # Intentionally ignore arguments
                 super(NewNaturalManager, self).__init__()
-
-            def get_by_natural_key(self, *args):
-                lookups = dict(zip(self.fields, args))
-                try:
-                    return self.get(**lookups)
-                except MultipleObjectsReturned:
-                    if self.allow_many:
-                        return self.filter(**lookups)[0]
-                    raise
         return super(NaturalManager, cls).__new__(NewNaturalManager)
 
 
