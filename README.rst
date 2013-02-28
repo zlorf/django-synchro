@@ -364,6 +364,8 @@ Or raw way of manually changing synchro checkpoint::
 Changelog
 =========
 
+**0.5.1** (28/02/2013)
+    Fixed a few issues with 0.5 release.
 **0.5** (27/02/2013)
     - Refactored code to be compatible with Django 1.5
     - Required Django version increased from 1.3 to 1.4 (the code was already using some
