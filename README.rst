@@ -364,19 +364,26 @@ Or raw way of manually changing synchro checkpoint::
 Changelog
 =========
 
+**dev**
+    - Fixed dangerous typo
+
 **0.5.1** (28/02/2013)
-    Fixed a few issues with 0.5 release.
+    Fixed a few issues with 0.5 release
+
 **0.5** (27/02/2013)
     - Refactored code to be compatible with Django 1.5
     - Required Django version increased from 1.3 to 1.4 (the code was already using some
       1.4-specific functions)
     - Removed deprecated natural_manager function
+
 **0.4.2** (18/10/2012)
     - Fixed issue with app loading (thanks to Alexander Todorov for reporting)
     - Added 1 test regarding the issue above
+
 **0.4.1** (23/09/2012)
     - Fixed symmetrical m2m synchronization
     - Added 1 test regarding the issue above
+
 **0.4** (16/09/2012)
     - **Deprecation**: natural_manager function is deprecated. Use NaturalManager instead
     - Refactored NaturalManager class so that it plays well with models involved in m2m relations
@@ -385,11 +392,13 @@ Changelog
     - Fixed bug with m2m user-defined intermediary table synchronization
     - Fixed bugs with m2m changes synchronization
     - Added 3 tests regarding m2m aspects
+
 **0.3.1** (12/09/2012)
     - ``SYNCHRO_REMOTE`` setting is not required anymore.
       Its lack will only block ``synchronize`` command
     - Added 2 tests regarding the change above
     - Updated README
+
 **0.3** (04/09/2012)
     - **Backward incompatible**: Changed ``Reference`` fields type from ``Integer`` to ``Char`` in
       order to store non-numeric keys
@@ -398,8 +407,10 @@ Changelog
     - Exception is raised if class passed to natural_manager is not Manager subclass
     - Switched to dbsettings-bundled DateTimeValue
     - Updated README
+
 **0.2** (10/06/2012)
     Initial PyPI release
+
 **0.1**
     Local development
 
