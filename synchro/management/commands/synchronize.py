@@ -161,7 +161,7 @@ def ensure_exist(ct, id):
         return rem, ref
     rem = find_natural(ct, obj)
     if rem is not None:
-        ref = Reference.create(content_type=ct, local_object_id=id, remote_object_id=rem.pk)
+        ref = Reference.objects.create(content_type=ct, local_object_id=id, remote_object_id=rem.pk)
         return rem, ref
     return perform_add(ct, id)
 

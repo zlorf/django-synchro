@@ -39,7 +39,7 @@ REMOTE = settings.SYNCHRO_REMOTE
 SETTINGS = {
     'SYNCHRO_MODELS': (
         ('synchro', 'testmodel', 'PkModelWithSkip', 'ModelWithKey', 'ModelWithFK', 'A', 'X',
-         'M2mModelWithKey', 'M2mAnother', 'M2mModelWithInter', 'M2mSelf'),
+         'M2mModelWithKey', 'M2mAnother', 'M2mModelWithInter', 'M2mSelf', 'ModelWithFKtoKey'),
     )
 }
 
@@ -117,6 +117,11 @@ class ModelWithKey(NaturalKeyModel):
 
     objects = CustomManager()
     another_objects = MyNaturalManager()
+
+
+class ModelWithFKtoKey(models.Model):
+    name = models.CharField(max_length=10)
+    link = models.ForeignKey(ModelWithKey, related_name='links')
 
 
 class M2mModelWithKey(models.Model):
@@ -456,6 +461,16 @@ class SimpleSynchroTests(SynchroTests):
         b = TestModel.objects.db_manager(REMOTE).get(pk=b.pk)
         self.assertEqual(a.name, b.name)
         self.assertEqual(a.cash, b.cash)
+
+    def test_reference2(self):
+        """Test if reference is created for model found with natural key."""
+        ModelWithKey.objects.db_manager(REMOTE).create(name='James')
+        loc = ModelWithKey.objects.create(name='James')
+        self.wait()
+        ModelWithFKtoKey.objects.create(name='Test', link=loc)
+        self.synchronize()
+        self.assertRemoteCount(1, ModelWithFKtoKey)
+        self.assertRemoteCount(1, ModelWithKey)
 
     def test_time_comparing(self):
         """Test if synchronization is not performed if REMOTE object is newer."""
