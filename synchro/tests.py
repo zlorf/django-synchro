@@ -26,7 +26,7 @@ if get_version() >= '1.5':
         "Check if installed User object is not too custom for the tests to instantiate it."
         from django.contrib.auth.models import User as StandardUser
         if (User.USERNAME_FIELD == StandardUser.USERNAME_FIELD and
-            User.REQUIRED_FIELDS == StandardUser.REQUIRED_FIELDS):
+                User.REQUIRED_FIELDS == StandardUser.REQUIRED_FIELDS):
             return True
         return False
 else:
@@ -818,7 +818,6 @@ class M2MSynchroTests(SynchroTests):
         self.assertRemoteCount(1, M2mIntermediate)
         inter = M2mIntermediate.objects.db_manager(REMOTE).all()[0]
         self.assertEqual(1, inter.cash)
-
 
         # Tricky: clear from other side of relation.
         self.wait()
