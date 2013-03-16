@@ -4,6 +4,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.utils.translation import ugettext_lazy as _
 
 from synchro.models import Reference, ChangeLog, DeleteKey, options as app_options
 from synchro.models import ADDITION, CHANGE, DELETION, M2M_CHANGE
@@ -231,9 +232,16 @@ class Command(BaseCommand):
     args = ''
     help = '''Perform synchronization.'''
 
+    def handle(self, *args, **options):
+        # ``synchronize`` is extracted from ``handle`` since call_command has
+        # no easy way of returning a result
+        ret = self.synchronize(*args, **options)
+        if options['verbosity'] > 0:
+            self.stdout.write(u'%s\n' % ret)
+
     @transaction.commit_on_success
     @transaction.commit_on_success(using=REMOTE)
-    def handle(self, *args, **options):
+    def synchronize(self, *args, **options):
         if REMOTE is None:
             # Because of BaseCommand bug (#18387, fixed in Django 1.5), we cannot use CommandError
             # in tests. Hence this hook.
@@ -262,9 +270,11 @@ class Command(BaseCommand):
 
         if len(logs):
             app_options.last_check = last_time
-            msg = 'Synchronization performed successfully.'
+            return _('Synchronization performed successfully.')
         else:
-            msg = 'No changes since last synchronization.'
+            return _('No changes since last synchronization.')
 
-        if options['verbosity'] > 0:
-            self.stdout.write('%s\n' % msg)
+
+def call_synchronize(**kwargs):
+    "Shortcut to call management command and get return message."
+    return Command().synchronize(**kwargs)
