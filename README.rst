@@ -367,6 +367,8 @@ Changelog
 **dev**
     - Fixed dangerous typo
     - Added 'reset' button to synchro view
+    - Prepared all texts for translation
+    - Added PL translation
 
 **0.5.1** (28/02/2013)
     Fixed a few issues with 0.5 release

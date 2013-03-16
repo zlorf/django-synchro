@@ -27,6 +27,7 @@ if not settings.configured:
         SITE_ID = 1,
         SYNCHRO_REMOTE = 'remote_db',
         ROOT_URLCONF = 'can be anything - tests override this',
+        USE_I18N = True,
     )
 
 call_command('test', 'synchro')

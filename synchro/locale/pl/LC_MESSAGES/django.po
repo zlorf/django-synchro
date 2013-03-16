@@ -1,0 +1,65 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2013-03-16 20:48+0100\n"
+"Last-Translator: Jacek Tomaszewski <jacek.tomek@gmail.com>\n"
+"Language: PL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
+"|| n%100>=20) ? 1 : 2)\n"
+
+#: views.py:17
+#, python-format
+msgid "An error occured: %(msg)s (%(type)s)"
+msgstr "Wystąpił błąd: %(msg)s (%(type)s)"
+
+#: views.py:22
+msgid "Synchronization has been reset."
+msgstr "Synchronizacja została zresetowana."
+
+#: management/commands/synchronize.py:273
+msgid "Synchronization performed successfully."
+msgstr "Synchronizacja wykonana poprawnie."
+
+#: management/commands/synchronize.py:275
+msgid "No changes since last synchronization."
+msgstr "Nie było zmian od czasu ostatniej synchronizacji."
+
+#: templates/synchro.html:7 templates/synchro.html.py:12
+#: templates/synchro.html:18
+msgid "Synchronization"
+msgstr "Synchronizacja"
+
+#: templates/synchro.html:11
+msgid "Home"
+msgstr "Początek"
+
+#: templates/synchro.html:21
+msgid "Last synchro time"
+msgstr "Czas ostatniej synchronizacji"
+
+#: templates/synchro.html:22
+msgid "Synchronize"
+msgstr "Synchronizuj"
+
+#: templates/synchro.html:23
+#, fuzzy
+msgid "Reset synchronization"
+msgstr "Synchronizacja"
+
+#: templates/synchro.html:24
+msgid ""
+"All changes from last synchronization up to now will be forgotten and won't "
+"be synchronized in the future. Are you sure you want to proceed?"
+msgstr ""
+"Wszystkie zmiany od czasu ostatniej synchronizacji aż do teraz zostaną zapomniane"
+"i nie będzie ich już można później zsynchronizować. Czy na pewno chcesz kontynuować?"

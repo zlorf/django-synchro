@@ -514,6 +514,14 @@ class SimpleSynchroTests(SynchroTests):
         self.client.post(path, {'reset': True})  # button clicked
         self.assertEqual(ChangeLog.objects.count(), 0)
 
+    def test_translation(self):
+        """Test if texts are translated."""
+        from django.utils.translation import override, force_unicode
+        from synchro import call_synchronize
+        msg_en = force_unicode(call_synchronize())
+        with override('pl'):
+            self.assertNotEqual(msg_en, force_unicode(call_synchronize()))
+
 
 class AdvancedSynchroTests(SynchroTests):
     """Cover additional features."""
