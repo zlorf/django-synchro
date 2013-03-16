@@ -509,6 +509,10 @@ class SimpleSynchroTests(SynchroTests):
         self.assertRemoteCount(0, TestModel)
         self.client.post(path, {'synchro': True})  # button clicked
         self.assertRemoteCount(1, TestModel)
+        # resetting
+        self.assertGreater(ChangeLog.objects.count(), 0)
+        self.client.post(path, {'reset': True})  # button clicked
+        self.assertEqual(ChangeLog.objects.count(), 0)
 
 
 class AdvancedSynchroTests(SynchroTests):

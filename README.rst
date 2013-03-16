@@ -366,6 +366,7 @@ Changelog
 
 **dev**
     - Fixed dangerous typo
+    - Added 'reset' button to synchro view
 
 **0.5.1** (28/02/2013)
     Fixed a few issues with 0.5 release

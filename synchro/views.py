@@ -5,7 +5,8 @@ from django.contrib import messages
 from django.template.response import TemplateResponse
 from django.core.management import call_command
 
-from models import options
+from synchro import reset_synchro
+from synchro.models import options
 
 
 @staff_member_required
@@ -20,4 +21,8 @@ def synchro(request):
             messages.add_message(request, messages.ERROR, msg)
         finally:
             so.close()
+    elif 'reset' in request.POST:
+        reset_synchro()
+        msg = 'Synchronization has been reset.'
+        messages.add_message(request, messages.INFO, msg)
     return TemplateResponse(request, 'synchro.html', {'last': options.last_check})
