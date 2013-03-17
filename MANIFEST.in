@@ -1,2 +1,3 @@
 include README.rst LICENSE runtests.py
 recursive-include */templates *
+recursive-include */locale *.po *.mo
