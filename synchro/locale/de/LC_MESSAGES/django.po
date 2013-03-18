@@ -1,0 +1,66 @@
+# Copyright (C) 2013 Jacek Tomaszewski
+# This file is distributed under the same license as the django-synchro package.
+#
+# Dirk Eschler <eschler@gmail.com>, 2013.
+msgid ""
+msgstr ""
+"Project-Id-Version: django-synchro\n"
+"Report-Msgid-Bugs-To: https://github.com/zlorf/django-synchro\n"
+"POT-Creation-Date: 2013-03-18 22:05+0100\n"
+"PO-Revision-Date: 2013-03-18 23:02+0100\n"
+"Last-Translator: Dirk Eschler <eschler@gmail.com>\n"
+"Language-Team: German <eschler@gmail.com>\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Lokalize 1.5\n"
+
+#: views.py:17
+#, python-format
+msgid "An error occured: %(msg)s (%(type)s)"
+msgstr "Ein Fehler ist aufgetreten: %(msg)s (%(type)s)"
+
+#: views.py:22
+msgid "Synchronization has been reset."
+msgstr "Synchronisation wurde zurückgesetzt."
+
+#: management/commands/synchronize.py:273
+msgid "Synchronization performed successfully."
+msgstr "Synchronisation erfolgreich durchgeführt."
+
+#: management/commands/synchronize.py:275
+msgid "No changes since last synchronization."
+msgstr "Keine Änderungen seit der letzten Synchronisation."
+
+#: templates/synchro.html:7 templates/synchro.html.py:12
+#: templates/synchro.html:18
+msgid "Synchronization"
+msgstr "Synchronisation"
+
+#: templates/synchro.html:11
+msgid "Home"
+msgstr "Start"
+
+#: templates/synchro.html:21
+msgid "Last synchro time"
+msgstr "Zeitpunkt der letzten Synchronisation"
+
+#: templates/synchro.html:22
+msgid "Synchronize"
+msgstr "Synchronisieren"
+
+#: templates/synchro.html:23
+msgid "Reset synchronization"
+msgstr "Synchronisation zurücksetzen"
+
+#: templates/synchro.html:24
+msgid ""
+"All changes from last synchronization up to now will be forgotten and won't "
+"be synchronized in the future. Are you sure you want to proceed?"
+msgstr ""
+"Sämtliche Änderungen der letzten Synchronisation bis zum aktuellen Zeitpunkt "
+"werden zurückgesetzt und zukünftig nicht synchronisiert. Wirklich fortfahren?"
+
+
