@@ -1,7 +1,8 @@
 # Copyright (C) 2013 Jacek Tomaszewski
 # This file is distributed under the same license as the django-synchro package.
 #
-# Dirk Eschler <eschler@gmail.com>, 2013.
+# Dirk Eschler <eschler@gmail.com>, 2013
+#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: django-synchro\n"
