@@ -51,7 +51,7 @@ Installation
 
 #. Configure ``DATABASES``.
 
-#. Add ``synchro`` to ``INSTALLED_APPS``.
+#. Add ``synchro`` and ``dbsettings`` to ``INSTALLED_APPS``.
 
 #. Specify in your ``settings.py`` what is `remote database` name and which models should be watched and synchronized::
 
