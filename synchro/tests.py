@@ -518,9 +518,12 @@ class SimpleSynchroTests(SynchroTests):
         """Test if texts are translated."""
         from django.utils.translation import override, force_unicode
         from synchro import call_synchronize
-        msg_en = force_unicode(call_synchronize())
-        with override('pl'):
-            self.assertNotEqual(msg_en, force_unicode(call_synchronize()))
+        languages = ('en', 'pl', 'de', 'es', 'fr')
+        messages = set()
+        for lang in languages:
+            with override(lang):
+                messages.add(force_unicode(call_synchronize()))
+        self.assertEqual(len(messages), len(languages), 'Some language is missing.')
 
 
 class AdvancedSynchroTests(SynchroTests):
