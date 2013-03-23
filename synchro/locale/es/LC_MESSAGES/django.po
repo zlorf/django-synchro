@@ -1,0 +1,63 @@
+# Copyright (C) 2013 Jacek Tomaszewski
+# This file is distributed under the same license as the django-synchro package.
+#
+# Joanna Maryniak <joanna.maryniak@gmail.com>, 2013
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: 0.6\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2013-03-23 14:45+0100\n"
+"Last-Translator: Joanna Maryniak <joanna.maryniak@gmail.com>\n"
+"Language: ES\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+
+
+#: views.py:17
+#, python-format
+msgid "An error occured: %(msg)s (%(type)s)"
+msgstr "Había un error: %(msg)s (%(type)s)"
+
+#: views.py:22
+msgid "Synchronization has been reset."
+msgstr "La sincronización es estada reinicializada."
+
+#: management/commands/synchronize.py:272
+msgid "Synchronization performed successfully."
+msgstr "La sincronización finalizó exitosamente."
+
+#: management/commands/synchronize.py:274
+msgid "No changes since last synchronization."
+msgstr "No hay cambios desde la última sincronización."
+
+#: templates/synchro.html:7 templates/synchro.html.py:12
+#: templates/synchro.html:18
+msgid "Synchronization"
+msgstr "Sincronización"
+
+#: templates/synchro.html:11
+msgid "Home"
+msgstr "Portada"
+
+#: templates/synchro.html:21
+msgid "Last synchro time"
+msgstr "El tiempo de la última sincronización"
+
+#: templates/synchro.html:22
+msgid "Synchronize"
+msgstr "Sincroniza"
+
+#: templates/synchro.html:23
+msgid "Reset synchronization"
+msgstr "Reiniciliza la sincronización"
+
+#: templates/synchro.html:24
+msgid ""
+"All changes from last synchronization up to now will be forgotten and won't "
+"be synchronized in the future. Are you sure you want to proceed?"
+msgstr ""
+"Todos los cambios desde la última sincronización estarán olvidados y no estarán"
+"sincronizados en el futuro. ¿Estás seguro que deseas continuar?"
