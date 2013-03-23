@@ -20,8 +20,11 @@
     {% csrf_token %}
     <br>{% trans 'Last synchro time' %}: {{ last }}.
     <br><br><input type="submit" name="synchro" value="{% trans 'Synchronize' %}">
-    <br><br><input type="submit" name="reset" value="{% trans 'Reset synchronization' %}"
-        onclick="return confirm('{% trans "All changes from last synchronization up to now will be forgotten and won't be synchronized in the future. Are you sure you want to proceed?" %}');">
+
+    {% if reset_allowed %}
+        <br><br><input type="submit" name="reset" value="{% trans 'Reset synchronization' %}"
+            onclick="return confirm('{% trans "All changes from last synchronization up to now will be forgotten and won't be synchronized in the future. Are you sure you want to proceed?" %}');">
+    {% endif %}
 </form>
 </div>
 {% endblock %}

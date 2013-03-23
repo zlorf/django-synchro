@@ -5,6 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from synchro import call_synchronize, reset_synchro
 from synchro.models import options
+from synchro import settings
 
 
 @staff_member_required
@@ -17,8 +18,9 @@ def synchro(request):
             msg = _('An error occured: %(msg)s (%(type)s)') % {'msg': str(e),
                                                                'type': e.__class__.__name__}
             messages.add_message(request, messages.ERROR, msg)
-    elif 'reset' in request.POST:
+    elif 'reset' in request.POST and settings.ALLOW_RESET:
         reset_synchro()
         msg = _('Synchronization has been reset.')
         messages.add_message(request, messages.INFO, msg)
-    return TemplateResponse(request, 'synchro.html', {'last': options.last_check})
+    return TemplateResponse(request, 'synchro.html', {'last': options.last_check,
+                                                      'reset_allowed': settings.ALLOW_RESET})

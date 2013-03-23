@@ -48,6 +48,7 @@ MODELS = parse_models(getattr(settings, 'SYNCHRO_MODELS', ()))
 INTER_MODELS = get_intermediary(MODELS)
 REMOTE = getattr(settings, 'SYNCHRO_REMOTE', None)
 LOCAL = 'default'
+ALLOW_RESET = getattr(settings, 'SYNCHRO_ALLOW_RESET', True)
 
 if REMOTE is None:
     if not hasattr(settings, 'SYNCHRO_REMOTE'):

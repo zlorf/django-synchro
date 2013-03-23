@@ -88,6 +88,12 @@ Include in your urls::
 
 Then the view will be available at reversed url: ``synchro:synchro``.
 
+The view provides two buttons: one to perform synchronization, and the other to
+`reset checkpoint`__. If you would like to disable the reset button, set
+``SYNCHRO_ALLOW_RESET = False`` in your ``settings.py``.
+
+__ Checkpoints_
+
 ``SYNCHRO_REMOTE`` setting
 --------------------------
 
@@ -366,7 +372,7 @@ Changelog
 
 **dev**
     - Fixed dangerous typo
-    - Added 'reset' button to synchro view
+    - Added 'reset' button to synchro view and SYNCHRO_ALLOW_RESET setting
     - Prepared all texts for translation
     - Added PL, DE, FR, ES translations
 
