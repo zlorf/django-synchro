@@ -92,6 +92,12 @@ The view provides two buttons: one to perform synchronization, and the other to
 `reset checkpoint`__. If you would like to disable the reset button, set
 ``SYNCHRO_ALLOW_RESET = False`` in your ``settings.py``.
 
+Debugging
+---------
+
+In order to track a cause of exception during synchronization, set ``SYNCHRO_DEBUG = True``
+(and ``DEBUG = True`` as well) in your ``settings.py`` and try to perform synchronization by admin view.
+
 __ Checkpoints_
 
 ``SYNCHRO_REMOTE`` setting
@@ -370,11 +376,12 @@ Or raw way of manually changing synchro checkpoint::
 Changelog
 =========
 
-**dev**
+**0.5.2**
     - Fixed dangerous typo
     - Added 'reset' button to synchro view and SYNCHRO_ALLOW_RESET setting
     - Prepared all texts for translation
     - Added PL, DE, FR, ES translations
+    - Added ``SYNCHRO_DEBUG`` setting
 
 **0.5.1** (28/02/2013)
     Fixed a few issues with 0.5 release

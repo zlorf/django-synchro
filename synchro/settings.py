@@ -49,10 +49,11 @@ INTER_MODELS = get_intermediary(MODELS)
 REMOTE = getattr(settings, 'SYNCHRO_REMOTE', None)
 LOCAL = 'default'
 ALLOW_RESET = getattr(settings, 'SYNCHRO_ALLOW_RESET', True)
+DEBUG = getattr(settings, 'SYNCHRO_DEBUG', False)
 
 if REMOTE is None:
     if not hasattr(settings, 'SYNCHRO_REMOTE'):
-        import  warnings
+        import warnings
         warnings.warn('SYNCHRO_REMOTE not specified. Synchronization is disabled.', RuntimeWarning)
 elif REMOTE not in settings.DATABASES:
     raise ImproperlyConfigured('SYNCHRO_REMOTE invalid - no such database: %s.' % REMOTE)

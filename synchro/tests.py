@@ -52,7 +52,7 @@ def contrib_apps(*apps):
     return True
 
 
-##### Test models ################################
+# #### Test models ################################
 
 
 class TestModel(models.Model):
@@ -187,7 +187,7 @@ def update_bar_good_upd(sender, using, **kwargs):
     A.objects.db_manager(using).update(bar=F('bar') + 1)  # update don't emmit signals
 
 
-##### Tests themselves ###########################
+# #### Tests themselves ###########################
 
 
 @override_settings(**SETTINGS)

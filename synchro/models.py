@@ -4,7 +4,7 @@ from django.contrib.contenttypes import generic
 from django.db import models
 import dbsettings
 
-#noinspection PyUnresolvedReferences
+# noinspection PyUnresolvedReferences
 import settings  # in order to validate
 
 M2M_CHANGE = 4

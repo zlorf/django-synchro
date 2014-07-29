@@ -15,6 +15,8 @@ def synchro(request):
             msg = call_synchronize()
             messages.add_message(request, messages.INFO, msg)
         except Exception as e:
+            if settings.DEBUG:
+                raise
             msg = _('An error occured: %(msg)s (%(type)s)') % {'msg': str(e),
                                                                'type': e.__class__.__name__}
             messages.add_message(request, messages.ERROR, msg)
