@@ -11,7 +11,10 @@ from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
 from django.test import TestCase
 from django.test.utils import override_settings
-from django.utils.unittest.case import skipUnless
+try:
+    from unittest.case import skipUnless
+except ImportError:
+    from django.utils.unittest.case import skipUnless
 
 from models import ChangeLog
 import settings as synchro_settings
@@ -257,7 +260,9 @@ class SimpleSynchroTests(SynchroTests):
         from django.contrib.auth.models import Group
         self.assertNotIn(Group, synchro_settings.MODELS)
 
-        INSTALLED_APPS = settings.INSTALLED_APPS + ('django.contrib.auth',)
+        INSTALLED_APPS = settings.INSTALLED_APPS
+        if 'django.contrib.auth' not in INSTALLED_APPS:
+            INSTALLED_APPS = INSTALLED_APPS + ('django.contrib.auth',)
         with override_settings(INSTALLED_APPS=INSTALLED_APPS):
             # fully qualified path
             with override_settings(SYNCHRO_MODELS=('django.contrib.auth',)):
@@ -498,7 +503,12 @@ class SimpleSynchroTests(SynchroTests):
         user = User._default_manager.create_user('admin', 'mail', 'admin')
         self.client.login(username='admin', password='admin')
         # test if staff status is required
-        self.assertTemplateUsed(self.client.get(path), 'admin/login.html')
+        response = self.client.get(path)
+        try:
+            self.assertTemplateUsed(response, 'admin/login.html')
+        except AssertionError:  # Django >= 1.7
+            self.assertIn('location', response._headers)
+            self.assertIn('/admin/login/', response._headers['location'][1])
         user.is_staff = True
         user.save()
         # superuser
@@ -516,7 +526,8 @@ class SimpleSynchroTests(SynchroTests):
 
     def test_translation(self):
         """Test if texts are translated."""
-        from django.utils.translation import override, force_unicode
+        from django.utils.translation import override
+        from django.utils.encoding import force_unicode
         from synchro import call_synchronize
         languages = ('en', 'pl', 'de', 'es', 'fr')
         messages = set()

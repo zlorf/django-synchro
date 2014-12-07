@@ -1,7 +1,9 @@
+import django
 from django.contrib.admin.models import ADDITION, CHANGE, DELETION
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 from django.db import models
+from django.utils.timezone import now
 import dbsettings
 
 # noinspection PyUnresolvedReferences
@@ -18,7 +20,7 @@ ACTIONS = (
 
 
 class SynchroSettings(dbsettings.Group):
-    last_check = dbsettings.DateTimeValue('Last synchronization')
+    last_check = dbsettings.DateTimeValue('Last synchronization', default=now())
 options = SynchroSettings()
 
 
@@ -93,5 +95,6 @@ def save_changelog_m2m(sender, instance, model, using, action, **kwargs):
 
 
 # start logging
-from signals import synchro_connect
-synchro_connect()
+if django.VERSION < (1,7):
+    from signals import synchro_connect
+    synchro_connect()
