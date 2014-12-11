@@ -4,7 +4,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _t
 
 from synchro.models import Reference, ChangeLog, DeleteKey, options as app_options
 from synchro.models import ADDITION, CHANGE, DELETION, M2M_CHANGE
@@ -270,9 +270,9 @@ class Command(BaseCommand):
 
         if len(logs):
             app_options.last_check = last_time
-            return _('Synchronization performed successfully.')
+            return _t('Synchronization performed successfully.')
         else:
-            return _('No changes since last synchronization.')
+            return _t('No changes since last synchronization.')
 
 
 def call_synchronize(**kwargs):

@@ -1,3 +1,9 @@
+try:
+    from django.apps import apps
+except ImportError:
+    # Django < 1.7. Make stub object
+    apps = lambda: None
+    apps.ready = True
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models.loading import get_app, get_models, get_model, load_app
@@ -41,11 +47,20 @@ def get_intermediary(models):
                    if not m2m.rel.through._meta.auto_created)
     return res
 
+MODELS = INTER_MODELS = []
 
-MODELS = parse_models(getattr(settings, 'SYNCHRO_MODELS', ()))
-# Since user-defined m2m intermediary objects don't send m2m_changed signal, we need to listen to
-# those models.
-INTER_MODELS = get_intermediary(MODELS)
+
+def prepare():
+    global MODELS, INTER_MODELS
+    MODELS = parse_models(getattr(settings, 'SYNCHRO_MODELS', ()))
+    # Since user-defined m2m intermediary objects don't send m2m_changed signal,
+    #  we need to listen to those models.
+    INTER_MODELS = get_intermediary(MODELS)
+
+if apps.ready:
+    # In order to prevent exception in Django 1.7
+    prepare()
+
 REMOTE = getattr(settings, 'SYNCHRO_REMOTE', None)
 LOCAL = 'default'
 ALLOW_RESET = getattr(settings, 'SYNCHRO_ALLOW_RESET', True)

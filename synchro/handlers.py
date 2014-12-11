@@ -1,4 +1,5 @@
 import settings
+settings.prepare()
 from models import ChangeLog, DeleteKey, ADDITION, CHANGE, DELETION, M2M_CHANGE
 
 
