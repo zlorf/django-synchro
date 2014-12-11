@@ -11,6 +11,10 @@ from synchro.models import ADDITION, CHANGE, DELETION, M2M_CHANGE
 from synchro.settings import REMOTE, LOCAL
 
 
+if not hasattr(transaction, 'atomic'):
+    # Django < 1.6 stub
+    transaction.atomic = transaction.commit_on_success
+
 def get_object_for_this_type_using(self, using, **kwargs):
     return self.model_class()._default_manager.using(using).get(**kwargs)
 ContentType.get_object_for_this_type_using = get_object_for_this_type_using
@@ -239,8 +243,8 @@ class Command(BaseCommand):
         if options['verbosity'] > 0:
             self.stdout.write(u'%s\n' % ret)
 
-    @transaction.commit_on_success
-    @transaction.commit_on_success(using=REMOTE)
+    @transaction.atomic
+    @transaction.atomic(using=REMOTE)
     def synchronize(self, *args, **options):
         if REMOTE is None:
             # Because of BaseCommand bug (#18387, fixed in Django 1.5), we cannot use CommandError
