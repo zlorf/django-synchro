@@ -15,6 +15,7 @@ if not hasattr(transaction, 'atomic'):
     # Django < 1.6 stub
     transaction.atomic = transaction.commit_on_success
 
+
 def get_object_for_this_type_using(self, using, **kwargs):
     return self.model_class()._default_manager.using(using).get(**kwargs)
 ContentType.get_object_for_this_type_using = get_object_for_this_type_using

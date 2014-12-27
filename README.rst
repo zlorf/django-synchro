@@ -39,6 +39,14 @@ However, it is probably better (if possible) to have a common database rather th
 one for every project deployment and to perform synchronization between them.
 
 
+Requirements
+============
+
+The app is tested to work with Django 1.4 - 1.7. Older versions of Django will be probably supported
+as well.
+
+The app needs ``django-dbsettings`` to store the time of last synchronization.
+
 Installation
 ============
 
@@ -47,7 +55,7 @@ Installation
 
    $ pip install django-synchro
 
-   or download it manually and put in python path.
+   or download it manually along with dependencies and put in python path.
 
 #. Configure ``DATABASES``.
 
@@ -376,7 +384,11 @@ Or raw way of manually changing synchro checkpoint::
 Changelog
 =========
 
-**0.5.2**
+**0.6** (27/12/2014)
+    - Support Django 1.7
+    - Fixed deprecation warnings
+
+**0.5.2** (29/07/2014)
     - Fixed dangerous typo
     - Added 'reset' button to synchro view and SYNCHRO_ALLOW_RESET setting
     - Prepared all texts for translation
@@ -433,4 +445,4 @@ Changelog
 ----------
 
 :Author: Jacek Tomaszewski
-:Thanks: to my fiancee for text correction
+:Thanks: to my wife for text correction
