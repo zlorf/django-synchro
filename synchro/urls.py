@@ -1,9 +1,9 @@
 # flake8: noqa
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 
 from views import synchro
 
 
-urlpatterns = patterns('',
+urlpatterns = (
     url(r'^$', synchro, name='synchro'),
 )

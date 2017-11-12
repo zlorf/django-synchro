@@ -26,7 +26,8 @@ class NaturalManager(Manager):
         """
         Creates actual manager, which can be further subclassed and instantiated without arguments.
         """
-        if not fields and hasattr(cls, 'fields') and hasattr(cls, 'allow_many'):
+        if ((not fields and hasattr(cls, 'fields') and hasattr(cls, 'allow_many')) or
+            fields and not isinstance(fields[0], basestring)):
             # Class was already prepared.
             return super(NaturalManager, cls).__new__(cls)
 

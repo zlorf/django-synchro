@@ -42,8 +42,8 @@ one for every project deployment and to perform synchronization between them.
 Requirements
 ============
 
-The app is tested to work with Django 1.4 - 1.7. Older versions of Django will be probably supported
-as well.
+The app is tested to work with Django 1.7 - 1.11. If you want to use app in older versions of Django,
+use the 0.6 release.
 
 The app needs ``django-dbsettings`` to store the time of last synchronization.
 
@@ -161,7 +161,7 @@ require extra work in cases when the default manager is used::
 
 To minimalize the effort of implementing a custom manager, a shortcut is provided::
 
-    from synchro import NaturalManager
+    from synchro.core import NaturalManager
 
     class MyModel(models.Model):
         ...
@@ -171,7 +171,7 @@ To minimalize the effort of implementing a custom manager, a shortcut is provide
 
 Or even easier (effect is exactly the same)::
 
-    from synchro import NaturalKeyModel
+    from synchro.core import NaturalKeyModel
 
     class MyModel(NaturalKeyModel):
         ...
@@ -179,7 +179,7 @@ Or even easier (effect is exactly the same)::
 
 ``NaturalManager`` extends the built-in Manager by default; you can change its superclass using ``manager`` keyword::
 
-    from synchro import NaturalManager
+    from synchro.core import NaturalManager
 
     class MyVeryCustomManager(models.Manager):
         ... # some mumbo-jumbo magic
@@ -192,7 +192,7 @@ Or even easier (effect is exactly the same)::
 
 When using ``NaturalKeyModel``, ``NaturalManager`` will extend the defined (``objects``) manager::
 
-    from synchro import NaturalKeyModel
+    from synchro.core import NaturalKeyModel
 
     class MyVeryCustomManager(models.Manager):
         ... # some mumbo-jumbo magic
@@ -264,7 +264,7 @@ Temporary logging disabling
 
 If you don't want to log some actions::
 
-    from synchro import DisableSynchroLog
+    from synchro.core import DisableSynchroLog
 
     with DisableSynchroLog():
         mymodel.name = foo
@@ -272,7 +272,7 @@ If you don't want to log some actions::
 
 Or, in a less robust way, with a decorator::
 
-    from synchro import disable_synchro_log
+    from synchro.core import disable_synchro_log
 
     @disable_synchro_log
     def foo(mymodel):
@@ -369,7 +369,7 @@ Checkpoints
 
 If you wish to reset sychronization status (that is - delete logs and set checkpoint)::
 
-    from synchro import reset_synchro
+    from synchro.core import reset_synchro
 
     reset_synchro()
 
@@ -383,6 +383,13 @@ Or raw way of manually changing synchro checkpoint::
 
 Changelog
 =========
+
+**0.7** (12/11/2017)
+    - Support Django 1.8 - 1.11
+    - Dropped support for Django 1.6 and older
+    - Backward incompatibility:
+      you need to refactor all `from synchro import ...`
+      into `from synchro.core import ...`
 
 **0.6** (27/12/2014)
     - Support Django 1.7

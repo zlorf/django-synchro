@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.template.response import TemplateResponse
 from django.utils.translation import ugettext_lazy as _
 
-from synchro import call_synchronize, reset_synchro
+from synchro.core import call_synchronize, reset_synchro
 from synchro.models import options
 from synchro import settings
 

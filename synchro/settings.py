@@ -1,25 +1,22 @@
-try:
-    from django.apps import apps
-except ImportError:
-    # Django < 1.7. Make stub object
-    apps = lambda: None
-    apps.ready = True
+from django.apps import apps
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.db.models.loading import get_app, get_models, get_model, load_app
 
 
 def get_all_models(app):
     try:
-        app_mod = load_app(app)  # First try full path
-    except ImportError:
-        app_mod = get_app(app)  # Then try just app_label
-    return get_models(app_mod)
+        app_conf = apps.get_app_config(app)
+    except LookupError:
+        for config in apps.get_app_configs():
+            if config.name == app:
+                app_conf = config
+                break
+    return app_conf.get_models()
 
 
 def gel_listed_models(app, l):
     def parse(model):
-        m = get_model(app, model)
+        m = apps.get_model(app, model)
         if m is None:
             raise ImproperlyConfigured(
                 'SYNCHRO_MODELS: Model %s not found in %s app.' % (model, app))
@@ -40,10 +37,13 @@ def parse_models(l):
     return res
 
 
+def _get_remote_field(m2m):
+    return m2m.remote_field if hasattr(m2m, 'remote_field') else m2m.related
+
 def get_intermediary(models):
     res = {}
     for model in models:
-        res.update((m2m.rel.through, m2m.related) for m2m in model._meta.many_to_many
+        res.update((m2m.rel.through, _get_remote_field(m2m)) for m2m in model._meta.many_to_many
                    if not m2m.rel.through._meta.auto_created)
     return res
 

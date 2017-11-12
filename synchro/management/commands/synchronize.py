@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from django import VERSION
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.management.base import BaseCommand, CommandError
@@ -100,14 +101,20 @@ def save_m2m(ct, obj, remote):
             me = f.m2m_field_name()
             he_id = '%s_id' % f.m2m_reverse_field_name()
             res[f.attname] = (f.rel.to, f.rel.through, me, he_id)
-        for rel in obj._meta.get_all_related_many_to_many_objects():
+        if VERSION < (1, 8):
+            m2m = obj._meta.get_all_related_many_to_many_objects()
+        else:
+            m2m = [f for f in obj._meta.get_fields(include_hidden=True)
+                   if f.many_to_many and f.auto_created]
+        for rel in m2m:
             f = rel.field
             if rel.get_accessor_name() is None:
                 # In case of symmetrical relation
                 continue
             me = f.m2m_reverse_field_name()
             he_id = '%s_id' % f.m2m_field_name()
-            res[rel.get_accessor_name()] = (rel.model, f.rel.through, me, he_id)
+            related_model = rel.model if VERSION < (1, 8) else rel.related_model
+            res[rel.get_accessor_name()] = (related_model, f.rel.through, me, he_id)
         M2M_CACHE[model_name] = res
 
     _m2m = {}

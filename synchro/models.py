@@ -1,7 +1,7 @@
 import django
 from django.contrib.admin.models import ADDITION, CHANGE, DELETION
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes import generic
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.db import models
 from django.utils.timezone import now
 import dbsettings
@@ -34,7 +34,7 @@ class Reference(models.Model):
 class ChangeLog(models.Model):
     content_type = models.ForeignKey(ContentType)
     object_id = models.CharField(max_length=20)
-    object = generic.GenericForeignKey()
+    object = GenericForeignKey()
     date = models.DateTimeField(auto_now=True)
     action = models.PositiveSmallIntegerField(choices=ACTIONS)
 
@@ -45,9 +45,3 @@ class ChangeLog(models.Model):
 class DeleteKey(models.Model):
     changelog = models.OneToOneField(ChangeLog)
     key = models.CharField(max_length=200)
-
-
-# start logging
-if django.VERSION < (1, 7):
-    from signals import synchro_connect
-    synchro_connect()

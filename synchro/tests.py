@@ -1,6 +1,6 @@
 import datetime
 
-from django import get_version
+from django import VERSION
 from django.conf import settings
 from django.core.exceptions import ValidationError, ImproperlyConfigured
 from django.core.management import call_command, CommandError
@@ -21,20 +21,16 @@ import settings as synchro_settings
 from signals import DisableSynchroLog, disable_synchro_log
 from utility import NaturalManager, reset_synchro, NaturalKeyModel
 
-if get_version() >= '1.5':
-    from django.contrib.auth import get_user_model
-    User = get_user_model()
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
-    def user_model_quite_standard():
-        "Check if installed User object is not too custom for the tests to instantiate it."
-        from django.contrib.auth.models import User as StandardUser
-        if (User.USERNAME_FIELD == StandardUser.USERNAME_FIELD and
-                User.REQUIRED_FIELDS == StandardUser.REQUIRED_FIELDS):
-            return True
-        return False
-else:
-    from django.contrib.auth.models import User
-    user_model_quite_standard = lambda: True
+def user_model_quite_standard():
+    "Check if installed User object is not too custom for the tests to instantiate it."
+    from django.contrib.auth.models import User as StandardUser
+    if (User.USERNAME_FIELD == StandardUser.USERNAME_FIELD and
+            User.REQUIRED_FIELDS == StandardUser.REQUIRED_FIELDS):
+        return True
+    return False
 
 LOCAL = 'default'
 REMOTE = settings.SYNCHRO_REMOTE
@@ -43,7 +39,8 @@ SETTINGS = {
     'SYNCHRO_MODELS': (
         ('synchro', 'testmodel', 'PkModelWithSkip', 'ModelWithKey', 'ModelWithFK', 'A', 'X',
          'M2mModelWithKey', 'M2mAnother', 'M2mModelWithInter', 'M2mSelf', 'ModelWithFKtoKey'),
-    )
+    ),
+    'ROOT_URLCONF': 'synchro.test_urls',
 }
 
 
@@ -196,17 +193,21 @@ def update_bar_good_upd(sender, using, **kwargs):
 @override_settings(**SETTINGS)
 class SynchroTests(TestCase):
     multi_db = True
-    urls = 'synchro.test_urls'
 
     @classmethod
     def setUpClass(cls):
         """Update SYNCHRO_MODELS and reload them"""
-        with override_settings(**SETTINGS):
+        super(SynchroTests, cls).setUpClass()
+        if VERSION < (1, 8):
+            with override_settings(**SETTINGS):
+                reload(synchro_settings)
+        else:
             reload(synchro_settings)
 
     @classmethod
     def tearDownClass(cls):
         """Clean up after yourself: restore the previous SYNCHRO_MODELS"""
+        super(SynchroTests, cls).tearDownClass()
         reload(synchro_settings)
 
     def _assertDbCount(self, db, num, cls):
@@ -289,31 +290,24 @@ class SimpleSynchroTests(SynchroTests):
     def test_settings_without_remote(self):
         """Check if lack of REMOTE in settings cause synchronization disablement."""
         import synchro.management.commands.synchronize
-        with override_settings(SYNCHRO_REMOTE=None):
+        try:
+            with override_settings(SYNCHRO_REMOTE=None):
+                reload(synchro_settings)
+                reload(synchro.management.commands.synchronize)
+                self.assertIsNone(synchro_settings.REMOTE)
+                self.assertLocalCount(0, ChangeLog)
+                TestModel.objects.create(name='James', cash=7)
+                self.assertLocalCount(1, TestModel)
+                # ChangeLog created successfully despite lack of REMOTE
+                self.assertLocalCount(1, ChangeLog)
+
+                self.assertRaises(CommandError, self.synchronize)
+
+        finally:
+            # Restore previous state
             reload(synchro_settings)
             reload(synchro.management.commands.synchronize)
-            self.assertIsNone(synchro_settings.REMOTE)
-            self.assertLocalCount(0, ChangeLog)
-            TestModel.objects.create(name='James', cash=7)
-            self.assertLocalCount(1, TestModel)
-            # ChangeLog created successfully despite lack of REMOTE
-            self.assertLocalCount(1, ChangeLog)
-
-            from django import get_version
-            if get_version() >= '1.5':
-                self.assertRaises(CommandError, self.synchronize)
-            else:
-                # Because of BaseCommand bug (#18387, fixed in Django 1.5), we cannot use
-                # CommandError in tests: it is being caught and results in sys.exit(1).
-                class ExceptionStub(Exception):
-                    pass
-                with self.assertRaises(ExceptionStub):
-                    self.synchronize(exception_class=ExceptionStub)
-
-        # Restore previous state
-        reload(synchro_settings)
-        reload(synchro.management.commands.synchronize)
-        self.assertEqual(REMOTE, synchro_settings.REMOTE)
+            self.assertEqual(REMOTE, synchro_settings.REMOTE)
 
     def test_simple_synchro(self):
         """Check object creation and checkpoint storage."""
@@ -528,7 +522,7 @@ class SimpleSynchroTests(SynchroTests):
         """Test if texts are translated."""
         from django.utils.translation import override
         from django.utils.encoding import force_unicode
-        from synchro import call_synchronize
+        from synchro.core import call_synchronize
         languages = ('en', 'pl', 'de', 'es', 'fr')
         messages = set()
         for lang in languages:

@@ -27,13 +27,31 @@ if not settings.configured:
         ),
         SITE_ID = 1,
         SYNCHRO_REMOTE = 'remote_db',
-        ROOT_URLCONF = 'can be anything - tests override this',
+        # ROOT_URLCONF ommited, because in Django 1.11 it need to be a valid module
         USE_I18N = True,
         MIDDLEWARE_CLASSES=(
             'django.contrib.sessions.middleware.SessionMiddleware',
             'django.contrib.auth.middleware.AuthenticationMiddleware',
             'django.contrib.messages.middleware.MessageMiddleware',
         ),
+        TEMPLATES = [
+            {
+                'BACKEND': 'django.template.backends.django.DjangoTemplates',
+                'DIRS': [],
+                'APP_DIRS': True,
+                'OPTIONS': {
+                    'context_processors': [
+                        'django.contrib.auth.context_processors.auth',
+                        'django.template.context_processors.debug',
+                        'django.template.context_processors.i18n',
+                        'django.template.context_processors.media',
+                        'django.template.context_processors.static',
+                        'django.template.context_processors.tz',
+                        'django.contrib.messages.context_processors.messages',
+                    ],
+                },
+            },
+        ],
     )
 
 if django.VERSION >= (1, 7):
