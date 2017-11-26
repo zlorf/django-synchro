@@ -75,7 +75,7 @@ class NaturalKeyModel(Model):
 
 
 def reset_synchro():
-    from models import ChangeLog, Reference, options
+    from .models import ChangeLog, Reference, options
     options.last_check = datetime.now()
     ChangeLog.objects.all().delete()
     Reference.objects.all().delete()

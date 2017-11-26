@@ -1,7 +1,7 @@
 # flake8: noqa
 from django.conf.urls import url
 
-from views import synchro
+from .views import synchro
 
 
 urlpatterns = (
