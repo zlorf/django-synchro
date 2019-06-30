@@ -43,8 +43,8 @@ def _get_remote_field(m2m):
 def get_intermediary(models):
     res = {}
     for model in models:
-        res.update((m2m.rel.through, _get_remote_field(m2m)) for m2m in model._meta.many_to_many
-                   if not m2m.rel.through._meta.auto_created)
+        res.update((m2m.remote_field.through, _get_remote_field(m2m)) for m2m in model._meta.many_to_many
+                   if not m2m.remote_field.through._meta.auto_created)
     return res
 
 MODELS = INTER_MODELS = []

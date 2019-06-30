@@ -4,7 +4,7 @@ from django import VERSION
 from django.conf import settings
 from django.core.exceptions import ValidationError, ImproperlyConfigured
 from django.core.management import call_command, CommandError
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db import models
 from django.db.models import F
 from django.db.models.signals import pre_save, post_save, post_delete
@@ -70,7 +70,7 @@ class PkModelWithSkip(models.Model):
 class ModelWithFK(models.Model):
     name = models.CharField(max_length=10)
     visits = models.PositiveIntegerField(default=0)
-    link = models.ForeignKey(PkModelWithSkip, related_name='links')
+    link = models.ForeignKey(PkModelWithSkip, related_name='links', on_delete=models.CASCADE)
 
 
 @receiver(pre_save, sender=ModelWithFK)
@@ -121,7 +121,7 @@ class ModelWithKey(NaturalKeyModel):
 
 class ModelWithFKtoKey(models.Model):
     name = models.CharField(max_length=10)
-    link = models.ForeignKey(ModelWithKey, related_name='links')
+    link = models.ForeignKey(ModelWithKey, related_name='links', on_delete=models.CASCADE)
 
 
 class M2mModelWithKey(models.Model):
@@ -149,10 +149,10 @@ class M2mNotExplicitlySynced(models.Model):
 
 
 class M2mIntermediate(models.Model):
-    with_key = models.ForeignKey(M2mModelWithKey)
-    with_inter = models.ForeignKey(M2mModelWithInter)
+    with_key = models.ForeignKey(M2mModelWithKey, on_delete=models.CASCADE)
+    with_inter = models.ForeignKey(M2mModelWithInter, on_delete=models.CASCADE)
     # To get everything worse, use another FK here, in order to test intermediate sync.
-    extra = models.ForeignKey(M2mNotExplicitlySynced)
+    extra = models.ForeignKey(M2mNotExplicitlySynced, on_delete=models.CASCADE)
     cash = models.IntegerField()
 
 

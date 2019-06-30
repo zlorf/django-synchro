@@ -29,7 +29,7 @@ if not settings.configured:
         SYNCHRO_REMOTE = 'remote_db',
         # ROOT_URLCONF ommited, because in Django 1.11 it need to be a valid module
         USE_I18N = True,
-        MIDDLEWARE_CLASSES=(
+        MIDDLEWARE=(
             'django.contrib.sessions.middleware.SessionMiddleware',
             'django.contrib.auth.middleware.AuthenticationMiddleware',
             'django.contrib.messages.middleware.MessageMiddleware',
