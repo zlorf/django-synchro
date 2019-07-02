@@ -16,10 +16,12 @@ try:
 except ImportError:
     from django.utils.unittest.case import skipUnless
 
-from models import ChangeLog
-import settings as synchro_settings
-from signals import DisableSynchroLog, disable_synchro_log
-from utility import NaturalManager, reset_synchro, NaturalKeyModel
+from importlib import reload
+
+from .models import ChangeLog
+from . import settings as synchro_settings
+from .signals import DisableSynchroLog, disable_synchro_log
+from .utility import NaturalManager, reset_synchro, NaturalKeyModel
 
 from django.contrib.auth import get_user_model
 User = get_user_model()
@@ -521,13 +523,13 @@ class SimpleSynchroTests(SynchroTests):
     def test_translation(self):
         """Test if texts are translated."""
         from django.utils.translation import override
-        from django.utils.encoding import force_unicode
+        from django.utils.encoding import force_text
         from synchro.core import call_synchronize
         languages = ('en', 'pl', 'de', 'es', 'fr')
         messages = set()
         for lang in languages:
             with override(lang):
-                messages.add(force_unicode(call_synchronize()))
+                messages.add(force_text(call_synchronize()))
         self.assertEqual(len(messages), len(languages), 'Some language is missing.')
 
 

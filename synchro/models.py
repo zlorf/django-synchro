@@ -19,6 +19,8 @@ ACTIONS = (
 
 class SynchroSettings(dbsettings.Group):
     last_check = dbsettings.DateTimeValue('Last synchronization', default=now())
+
+
 options = SynchroSettings()
 
 

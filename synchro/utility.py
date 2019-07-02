@@ -27,7 +27,7 @@ class NaturalManager(Manager):
         Creates actual manager, which can be further subclassed and instantiated without arguments.
         """
         if ((not fields and hasattr(cls, 'fields') and hasattr(cls, 'allow_many')) or
-            fields and not isinstance(fields[0], basestring)):
+            fields and not isinstance(fields[0], str)):
             # Class was already prepared.
             return super(NaturalManager, cls).__new__(cls)
 
@@ -75,7 +75,7 @@ class NaturalKeyModel(Model):
 
 
 def reset_synchro():
-    from models import ChangeLog, Reference, options
+    from .models import ChangeLog, Reference, options
     options.last_check = datetime.now()
     ChangeLog.objects.all().delete()
     Reference.objects.all().delete()

@@ -120,7 +120,7 @@ def save_m2m(ct, obj, remote):
     _m2m = {}
 
     # handle m2m fields
-    for f, (to, through, me, he_id) in M2M_CACHE[model_name].iteritems():
+    for f, (to, through, me, he_id) in M2M_CACHE[model_name].items():
         fk_ct = ContentType.objects.get_for_model(to)
         out = []
         if through._meta.auto_created:
@@ -135,7 +135,7 @@ def save_m2m(ct, obj, remote):
                 out.append(inter)
         _m2m[f] = not through._meta.auto_created, out
 
-    for f, (intermediary, out) in _m2m.iteritems():
+    for f, (intermediary, out) in _m2m.items():
         if not intermediary:
             getattr(remote, f).set(out)
         else:
