@@ -335,7 +335,7 @@ class SimpleSynchroTests(SynchroTests):
         """
         some = TestModel.objects.db_manager(REMOTE).create(name='Remote James', cash=77)
         a = TestModel.objects.create(name='James', cash=7)
-        self.assertEquals(a.pk, some.pk)
+        self.assertEqual(a.pk, some.pk)
         self.synchronize()
         self.assertLocalCount(1, TestModel)
         self.assertRemoteCount(2, TestModel)
@@ -349,7 +349,7 @@ class SimpleSynchroTests(SynchroTests):
         """
         some = PkModelWithSkip.objects.db_manager(REMOTE).create(name='James', cash=77, visits=5)
         a = PkModelWithSkip.objects.create(name='James', cash=7, visits=42)
-        self.assertEquals(a.pk, some.pk)
+        self.assertEqual(a.pk, some.pk)
         self.synchronize()
         self.assertLocalCount(1, PkModelWithSkip)
         self.assertRemoteCount(1, PkModelWithSkip)
@@ -448,11 +448,11 @@ class SimpleSynchroTests(SynchroTests):
         """Test if object once synchronized is linked with remote instance."""
         some = TestModel.objects.db_manager(REMOTE).create(name='Remote James', cash=77)
         a = TestModel.objects.create(name='James', cash=7)
-        self.assertEquals(a.pk, some.pk)
+        self.assertEqual(a.pk, some.pk)
         self.synchronize()
         self.assertRemoteCount(2, TestModel)
         b = TestModel.objects.db_manager(REMOTE).get(name='James')
-        self.assertNotEquals(a.pk, b.pk)
+        self.assertNotEqual(a.pk, b.pk)
         b.name = 'Bond'
         b.save()  # This change will be discarded
         self.wait()
@@ -589,7 +589,7 @@ class AdvancedSynchroTests(SynchroTests):
         """
         b = ModelWithKey.objects.db_manager(REMOTE).create(name='James', cash=77, visits=5)
         a = ModelWithKey.objects.create(name='James', cash=7, visits=42, pk=2)
-        self.assertNotEquals(a.pk, b.pk)
+        self.assertNotEqual(a.pk, b.pk)
         self.synchronize()
         self.assertLocalCount(1, ModelWithKey)
         self.assertRemoteCount(1, ModelWithKey)
