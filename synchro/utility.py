@@ -63,8 +63,7 @@ class _NaturalKeyModelBase(ModelBase):
         return super(_NaturalKeyModelBase, cls).__new__(cls, name, bases, attrs)
 
 
-class NaturalKeyModel(Model):
-    __metaclass__ = _NaturalKeyModelBase
+class NaturalKeyModel(Model, metaclass=_NaturalKeyModelBase):
     _natural_key = ()
 
     def natural_key(self):
