@@ -1,15 +1,16 @@
-from datetime import datetime
-
 from django import VERSION
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils.translation import ugettext_lazy as _t
+from django.utils import timezone
 
 from synchro.models import Reference, ChangeLog, DeleteKey, options as app_options
 from synchro.models import ADDITION, CHANGE, DELETION, M2M_CHANGE
 from synchro.settings import REMOTE, LOCAL
+
+import pytz
 
 
 if not hasattr(transaction, 'atomic'):
@@ -261,7 +262,8 @@ class Command(BaseCommand):
             raise exception_class('No REMOTE database specified in settings.')
 
         since = app_options.last_check
-        last_time = datetime.now()
+        since = since.replace(tzinfo=pytz.utc)
+        last_time = timezone.now()
         logs = ChangeLog.objects.filter(date__gt=since).select_related().order_by('date', 'pk')
 
         # Don't synchronize if object should be added/changed and later deleted;

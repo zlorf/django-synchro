@@ -1,8 +1,7 @@
-from datetime import datetime
-
 from django.core.exceptions import MultipleObjectsReturned, ValidationError
 from django.db.models import Manager, Model
 from django.db.models.base import ModelBase
+from django.utils import timezone
 
 
 class NaturalManager(Manager):
@@ -75,6 +74,6 @@ class NaturalKeyModel(Model, metaclass=_NaturalKeyModelBase):
 
 def reset_synchro():
     from .models import ChangeLog, Reference, options
-    options.last_check = datetime.now()
+    options.last_check = timezone.now()
     ChangeLog.objects.all().delete()
     Reference.objects.all().delete()
