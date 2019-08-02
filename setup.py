@@ -11,9 +11,10 @@ setup(
     url='https://github.com/zlorf/django-synchro',
     license='MIT',
     install_requires=(
-        'django-dbsettings>=0.11',
-        'django>=2.2.0',
+        'django-dbsettings>=0.11.0',
+        'django>=2.0',
     ),
+    dependency_links=['https://github.com/mlier/django-dbsettings/tarball/django20#egg=django-dbsettings-0.11.0'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
@@ -21,6 +22,8 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Framework :: Django',
+        'Framework :: Django :: 2.0',
+        'Framework :: Django :: 2.1',
         'Framework :: Django :: 2.2',
     ],
     packages=find_packages(),
