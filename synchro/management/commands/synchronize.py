@@ -283,6 +283,7 @@ class Command(BaseCommand):
                 ACTIONS[log.action](log.content_type, log.object_id, log)
 
         if len(logs):
+            last_time = last_time.strftime("%Y-%m-%d %H:%M:%S.%f")
             app_options.last_check = last_time
             return _t('Synchronization performed successfully.')
         else:
