@@ -264,7 +264,8 @@ class Command(BaseCommand):
 
         since = app_options.last_check
         last_time = datetime.now()
-        logs = ChangeLog.objects.filter(date__gt=since).select_related().order_by('date', 'pk')
+        filters = {"date__gt": since} if since else {}
+        logs = ChangeLog.objects.filter(**filters).select_related().order_by('date', 'pk')
 
         # Don't synchronize if object should be added/changed and later deleted;
         to_del = {}
