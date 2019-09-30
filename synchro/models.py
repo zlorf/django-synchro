@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import django
 from django.contrib.admin.models import ADDITION, CHANGE, DELETION
 from django.contrib.contenttypes.models import ContentType
@@ -5,6 +6,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.db import models
 from django.utils.timezone import now
 import dbsettings
+import six
 
 
 M2M_CHANGE = 4
@@ -24,8 +26,8 @@ options = SynchroSettings()
 
 class Reference(models.Model):
     content_type = models.ForeignKey(ContentType)
-    local_object_id = models.CharField(max_length=20)
-    remote_object_id = models.CharField(max_length=20)
+    local_object_id = models.CharField(max_length=256)
+    remote_object_id = models.CharField(max_length=256)
 
     class Meta:
         unique_together = ('content_type', 'local_object_id')
@@ -33,15 +35,15 @@ class Reference(models.Model):
 
 class ChangeLog(models.Model):
     content_type = models.ForeignKey(ContentType)
-    object_id = models.CharField(max_length=20)
+    object_id = models.CharField(max_length=256)
     object = GenericForeignKey()
     date = models.DateTimeField(auto_now=True)
     action = models.PositiveSmallIntegerField(choices=ACTIONS)
 
     def __unicode__(self):
-        return u'ChangeLog for %s (%s)' % (unicode(self.object), self.get_action_display())
+        return u'ChangeLog for %s (%s)' % (six.text_type(self.object), self.get_action_display())
 
 
 class DeleteKey(models.Model):
     changelog = models.OneToOneField(ChangeLog)
-    key = models.CharField(max_length=200)
+    key = models.CharField(max_length=256)

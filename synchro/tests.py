@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import datetime
 
 from django import VERSION
@@ -16,10 +17,10 @@ try:
 except ImportError:
     from django.utils.unittest.case import skipUnless
 
-from models import ChangeLog
-import settings as synchro_settings
-from signals import DisableSynchroLog, disable_synchro_log
-from utility import NaturalManager, reset_synchro, NaturalKeyModel
+from .models import ChangeLog
+from . import settings as synchro_settings
+from .signals import DisableSynchroLog, disable_synchro_log
+from .utility import NaturalManager, reset_synchro, NaturalKeyModel
 
 from django.contrib.auth import get_user_model
 User = get_user_model()
@@ -621,7 +622,7 @@ class AdvancedSynchroTests(SynchroTests):
         b = PkModelWithSkip.objects.db_manager(REMOTE).get(name='James')
         self.assertEqual(2, b.links.count())
         # Check if all submodels belong to remote db
-        self.assertTrue(all(map(lambda x: x._state.db == REMOTE, b.links.all())))
+        self.assertTrue(all([x._state.db == REMOTE for x in b.links.all()]))
 
     def test_disabling(self):
         """Test if logging can be disabled."""

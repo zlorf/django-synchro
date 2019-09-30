@@ -1,8 +1,11 @@
+from __future__ import absolute_import
 from datetime import datetime
 
 from django.core.exceptions import MultipleObjectsReturned, ValidationError
 from django.db.models import Manager, Model
 from django.db.models.base import ModelBase
+import six
+from six.moves import zip
 
 
 class NaturalManager(Manager):
@@ -14,7 +17,7 @@ class NaturalManager(Manager):
     allow_many = False
 
     def get_by_natural_key(self, *args):
-        lookups = dict(zip(self.fields, args))
+        lookups = dict(list(zip(self.fields, args)))
         try:
             return self.get(**lookups)
         except MultipleObjectsReturned:
@@ -27,7 +30,7 @@ class NaturalManager(Manager):
         Creates actual manager, which can be further subclassed and instantiated without arguments.
         """
         if ((not fields and hasattr(cls, 'fields') and hasattr(cls, 'allow_many')) or
-            fields and not isinstance(fields[0], basestring)):
+            fields and not isinstance(fields[0], six.string_types)):
             # Class was already prepared.
             return super(NaturalManager, cls).__new__(cls)
 
@@ -63,8 +66,7 @@ class _NaturalKeyModelBase(ModelBase):
         return super(_NaturalKeyModelBase, cls).__new__(cls, name, bases, attrs)
 
 
-class NaturalKeyModel(Model):
-    __metaclass__ = _NaturalKeyModelBase
+class NaturalKeyModel(six.with_metaclass(_NaturalKeyModelBase, Model)):
     _natural_key = ()
 
     def natural_key(self):
@@ -75,7 +77,7 @@ class NaturalKeyModel(Model):
 
 
 def reset_synchro():
-    from models import ChangeLog, Reference, options
+    from .models import ChangeLog, Reference, options
     options.last_check = datetime.now()
     ChangeLog.objects.all().delete()
     Reference.objects.all().delete()

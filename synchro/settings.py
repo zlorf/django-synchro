@@ -1,6 +1,8 @@
+from __future__ import absolute_import
 from django.apps import apps
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from six.moves import map
 
 
 def get_all_models(app):
@@ -21,7 +23,7 @@ def gel_listed_models(app, l):
             raise ImproperlyConfigured(
                 'SYNCHRO_MODELS: Model %s not found in %s app.' % (model, app))
         return m
-    return map(parse, l)
+    return list(map(parse, l))
 
 
 def parse_models(l):
