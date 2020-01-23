@@ -390,6 +390,10 @@ Or raw way of manually changing synchro checkpoint::
 Changelog
 =========
 
+**0.8.1** (23/01/2020)
+    - Support Django 2.0 - 2.2 and 3.0
+    - Support Python 3.5 - 3.8
+
 **0.8** (02/12/2019)
     - Support Django 2.0 - 2.2
     - Dropped support for Django 1.8 - 1.11
