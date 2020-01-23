@@ -42,8 +42,8 @@ one for every project deployment and to perform synchronization between them.
 Requirements
 ============
 
-The app is tested to work with Django 1.7 - 1.11. If you want to use app in older versions of Django,
-use the 0.6 release.
+The app is tested to work with Django 2.0 - 2.2. If you want to use app in older versions of Django 1,
+use the 0.7 release.
 
 The app needs ``django-dbsettings`` to store the time of last synchronization.
 
@@ -92,7 +92,13 @@ In order to allow performing synchronization without shell access, you can use s
 
 Include in your urls::
 
-    url(r'^synchro/', include('synchro.urls', 'synchro', 'synchro')),
+    from django.urls import path, include
+
+    urlpatterns = [
+        ...
+        path('synchro/', include('synchro.urls')),
+        ...
+    ]
 
 Then the view will be available at reversed url: ``synchro:synchro``.
 
@@ -383,6 +389,14 @@ Or raw way of manually changing synchro checkpoint::
 
 Changelog
 =========
+
+**0.8.1** (23/01/2020)
+    - Support Django 2.0 - 2.2 and 3.0
+    - Support Python 3.5 - 3.8
+
+**0.8** (02/12/2019)
+    - Support Django 2.0 - 2.2
+    - Dropped support for Django 1.8 - 1.11
 
 **0.7** (12/11/2017)
     - Support Django 1.8 - 1.11

@@ -1,59 +1,15 @@
 #!/usr/bin/env python
+import os
+import sys
+
 import django
 from django.conf import settings
-from django.core.management import call_command
+from django.test.utils import get_runner
 
-
-if not settings.configured:
-    settings.configure(
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': ':memory:',
-            },
-            'remote_db': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': ':memory:',
-            }
-        },
-        INSTALLED_APPS = (
-            'django.contrib.admin',
-            'django.contrib.auth',
-            'django.contrib.contenttypes',
-            'django.contrib.sites',
-            'django.contrib.sessions',
-            'dbsettings',
-            'synchro',
-        ),
-        SITE_ID = 1,
-        SYNCHRO_REMOTE = 'remote_db',
-        # ROOT_URLCONF ommited, because in Django 1.11 it need to be a valid module
-        USE_I18N = True,
-        MIDDLEWARE_CLASSES=(
-            'django.contrib.sessions.middleware.SessionMiddleware',
-            'django.contrib.auth.middleware.AuthenticationMiddleware',
-            'django.contrib.messages.middleware.MessageMiddleware',
-        ),
-        TEMPLATES = [
-            {
-                'BACKEND': 'django.template.backends.django.DjangoTemplates',
-                'DIRS': [],
-                'APP_DIRS': True,
-                'OPTIONS': {
-                    'context_processors': [
-                        'django.contrib.auth.context_processors.auth',
-                        'django.template.context_processors.debug',
-                        'django.template.context_processors.i18n',
-                        'django.template.context_processors.media',
-                        'django.template.context_processors.static',
-                        'django.template.context_processors.tz',
-                        'django.contrib.messages.context_processors.messages',
-                    ],
-                },
-            },
-        ],
-    )
-
-if django.VERSION >= (1, 7):
+if __name__ == "__main__":
+    os.environ['DJANGO_SETTINGS_MODULE'] = 'tests.test_settings'
     django.setup()
-call_command('test', 'synchro')
+    TestRunner = get_runner(settings)
+    test_runner = TestRunner()  # debug : verbosity=2, keepdb=True
+    failures = test_runner.run_tests(["tests"])
+    sys.exit(bool(failures))

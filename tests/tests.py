@@ -4,11 +4,10 @@ from django import VERSION
 from django.conf import settings
 from django.core.exceptions import ValidationError, ImproperlyConfigured
 from django.core.management import call_command, CommandError
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db import models
 from django.db.models import F
 from django.db.models.signals import pre_save, post_save, post_delete
-from django.dispatch import receiver
 from django.test import TestCase
 from django.test.utils import override_settings
 try:
@@ -16,13 +15,21 @@ try:
 except ImportError:
     from django.utils.unittest.case import skipUnless
 
-from models import ChangeLog
-import settings as synchro_settings
-from signals import DisableSynchroLog, disable_synchro_log
-from utility import NaturalManager, reset_synchro, NaturalKeyModel
+from importlib import reload
+
+from synchro.models import ChangeLog
+from synchro import settings as synchro_settings
+from synchro.signals import DisableSynchroLog, disable_synchro_log
+from synchro.utility import NaturalManager, reset_synchro, NaturalKeyModel
+
+from .models import TestModel, PkModelWithSkip, PkModelWithSkip, ModelWithKey, ModelWithFK, A, X, M2mModelWithKey, \
+    M2mAnother, M2mModelWithInter, M2mSelf, ModelWithFKtoKey, M2mNotExplicitlySynced, M2mIntermediate
+
+from .models import CustomManager, update_bar_good_upd, update_bar_bad, update_bar_good_dis
 
 from django.contrib.auth import get_user_model
 User = get_user_model()
+
 
 def user_model_quite_standard():
     "Check if installed User object is not too custom for the tests to instantiate it."
@@ -32,16 +39,10 @@ def user_model_quite_standard():
         return True
     return False
 
+
 LOCAL = 'default'
 REMOTE = settings.SYNCHRO_REMOTE
-# List of test models
-SETTINGS = {
-    'SYNCHRO_MODELS': (
-        ('synchro', 'testmodel', 'PkModelWithSkip', 'ModelWithKey', 'ModelWithFK', 'A', 'X',
-         'M2mModelWithKey', 'M2mAnother', 'M2mModelWithInter', 'M2mSelf', 'ModelWithFKtoKey'),
-    ),
-    'ROOT_URLCONF': 'synchro.test_urls',
-}
+SETTINGS = {}
 
 
 def contrib_apps(*apps):
@@ -55,137 +56,6 @@ def contrib_apps(*apps):
 # #### Test models ################################
 
 
-class TestModel(models.Model):
-    name = models.CharField(max_length=10)
-    cash = models.IntegerField(default=0)
-
-
-class PkModelWithSkip(models.Model):
-    name = models.CharField(max_length=10, primary_key=True)
-    cash = models.IntegerField(default=0)
-    visits = models.PositiveIntegerField(default=0)
-    SYNCHRO_SKIP = ('visits',)
-
-
-class ModelWithFK(models.Model):
-    name = models.CharField(max_length=10)
-    visits = models.PositiveIntegerField(default=0)
-    link = models.ForeignKey(PkModelWithSkip, related_name='links')
-
-
-@receiver(pre_save, sender=ModelWithFK)
-def save_prev(sender, instance, **kwargs):
-    """Save object's previous state (before save)."""
-    try:
-        instance._prev = sender.objects.db_manager(instance._state.db).get(pk=instance.pk)
-    except sender.DoesNotExist:
-        instance._prev = None
-
-
-@receiver(post_save, sender=ModelWithFK)
-@disable_synchro_log
-def update_visits(sender, instance, created, **kwargs):
-    """Update parent visits."""
-    if not created:
-        # Side note: in the statement below it should be instance._prev.link in case of link change,
-        # but it requires some refreshing from database (since instance._prev.link and instance.link
-        # are two different instances of the same object). For this test
-        instance.link.visits -= instance._prev.visits
-        instance.link.save()
-    instance.link.visits += instance.visits
-    instance.link.save()
-
-
-class CustomManager(models.Manager):
-    def foo(self):
-        return 'bar'
-
-    def none(self):  # Overrides Manager method
-        return 'Not a single object!'
-
-
-class MyNaturalManager(NaturalManager, CustomManager):
-    fields = ('name',)
-
-
-class ModelWithKey(NaturalKeyModel):
-    name = models.CharField(max_length=10)
-    cash = models.IntegerField(default=0)
-    visits = models.PositiveIntegerField(default=0)
-    SYNCHRO_SKIP = ('visits',)
-    _natural_key = ('name',)
-
-    objects = CustomManager()
-    another_objects = MyNaturalManager()
-
-
-class ModelWithFKtoKey(models.Model):
-    name = models.CharField(max_length=10)
-    link = models.ForeignKey(ModelWithKey, related_name='links')
-
-
-class M2mModelWithKey(models.Model):
-    foo = models.IntegerField(default=1)
-    objects = NaturalManager('foo')
-
-    def natural_key(self):
-        return self.foo,
-
-
-class M2mAnother(models.Model):
-    bar = models.IntegerField(default=1)
-    m2m = models.ManyToManyField('M2mModelWithKey', related_name='r_m2m')
-
-
-class M2mModelWithInter(models.Model):
-    bar = models.IntegerField(default=1)
-    m2m = models.ManyToManyField('M2mModelWithKey', related_name='r_m2m_i',
-                                 through='M2mIntermediate')
-
-
-class M2mNotExplicitlySynced(models.Model):
-    # This model is not listed in SYNCHRO_MODELS
-    foo = models.IntegerField(default=1)
-
-
-class M2mIntermediate(models.Model):
-    with_key = models.ForeignKey(M2mModelWithKey)
-    with_inter = models.ForeignKey(M2mModelWithInter)
-    # To get everything worse, use another FK here, in order to test intermediate sync.
-    extra = models.ForeignKey(M2mNotExplicitlySynced)
-    cash = models.IntegerField()
-
-
-class M2mSelf(models.Model):
-    foo = models.IntegerField(default=1)
-    m2m = models.ManyToManyField('self')
-
-
-class A(models.Model):
-    foo = models.IntegerField(default=1)
-    bar = models.IntegerField(default=1)
-
-
-class X(models.Model):
-    name = models.CharField(max_length=10)
-
-
-def update_bar_bad(sender, using, **kwargs):
-    a = A.objects.db_manager(using).all()[0]
-    a.bar += 1
-    a.save()
-
-
-@disable_synchro_log
-def update_bar_good_dis(sender, using, **kwargs):
-    a = A.objects.db_manager(using).all()[0]
-    a.bar += 1
-    a.save()
-
-
-def update_bar_good_upd(sender, using, **kwargs):
-    A.objects.db_manager(using).update(bar=F('bar') + 1)  # update don't emmit signals
-
 
 # #### Tests themselves ###########################
 
@@ -198,11 +68,7 @@ class SynchroTests(TestCase):
     def setUpClass(cls):
         """Update SYNCHRO_MODELS and reload them"""
         super(SynchroTests, cls).setUpClass()
-        if VERSION < (1, 8):
-            with override_settings(**SETTINGS):
-                reload(synchro_settings)
-        else:
-            reload(synchro_settings)
+        reload(synchro_settings)
 
     @classmethod
     def tearDownClass(cls):
@@ -333,7 +199,7 @@ class SimpleSynchroTests(SynchroTests):
         """
         some = TestModel.objects.db_manager(REMOTE).create(name='Remote James', cash=77)
         a = TestModel.objects.create(name='James', cash=7)
-        self.assertEquals(a.pk, some.pk)
+        self.assertEqual(a.pk, some.pk)
         self.synchronize()
         self.assertLocalCount(1, TestModel)
         self.assertRemoteCount(2, TestModel)
@@ -347,7 +213,7 @@ class SimpleSynchroTests(SynchroTests):
         """
         some = PkModelWithSkip.objects.db_manager(REMOTE).create(name='James', cash=77, visits=5)
         a = PkModelWithSkip.objects.create(name='James', cash=7, visits=42)
-        self.assertEquals(a.pk, some.pk)
+        self.assertEqual(a.pk, some.pk)
         self.synchronize()
         self.assertLocalCount(1, PkModelWithSkip)
         self.assertRemoteCount(1, PkModelWithSkip)
@@ -446,11 +312,11 @@ class SimpleSynchroTests(SynchroTests):
         """Test if object once synchronized is linked with remote instance."""
         some = TestModel.objects.db_manager(REMOTE).create(name='Remote James', cash=77)
         a = TestModel.objects.create(name='James', cash=7)
-        self.assertEquals(a.pk, some.pk)
+        self.assertEqual(a.pk, some.pk)
         self.synchronize()
         self.assertRemoteCount(2, TestModel)
         b = TestModel.objects.db_manager(REMOTE).get(name='James')
-        self.assertNotEquals(a.pk, b.pk)
+        self.assertNotEqual(a.pk, b.pk)
         b.name = 'Bond'
         b.save()  # This change will be discarded
         self.wait()
@@ -521,13 +387,13 @@ class SimpleSynchroTests(SynchroTests):
     def test_translation(self):
         """Test if texts are translated."""
         from django.utils.translation import override
-        from django.utils.encoding import force_unicode
+        from django.utils.encoding import force_text
         from synchro.core import call_synchronize
         languages = ('en', 'pl', 'de', 'es', 'fr')
         messages = set()
         for lang in languages:
             with override(lang):
-                messages.add(force_unicode(call_synchronize()))
+                messages.add(force_text(call_synchronize()))
         self.assertEqual(len(messages), len(languages), 'Some language is missing.')
 
 
@@ -587,7 +453,7 @@ class AdvancedSynchroTests(SynchroTests):
         """
         b = ModelWithKey.objects.db_manager(REMOTE).create(name='James', cash=77, visits=5)
         a = ModelWithKey.objects.create(name='James', cash=7, visits=42, pk=2)
-        self.assertNotEquals(a.pk, b.pk)
+        self.assertNotEqual(a.pk, b.pk)
         self.synchronize()
         self.assertLocalCount(1, ModelWithKey)
         self.assertRemoteCount(1, ModelWithKey)

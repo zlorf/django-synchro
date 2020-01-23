@@ -1,8 +1,7 @@
-from datetime import datetime
-
 from django.core.exceptions import MultipleObjectsReturned, ValidationError
 from django.db.models import Manager, Model
 from django.db.models.base import ModelBase
+from django.utils import timezone
 
 
 class NaturalManager(Manager):
@@ -27,7 +26,7 @@ class NaturalManager(Manager):
         Creates actual manager, which can be further subclassed and instantiated without arguments.
         """
         if ((not fields and hasattr(cls, 'fields') and hasattr(cls, 'allow_many')) or
-            fields and not isinstance(fields[0], basestring)):
+            fields and not isinstance(fields[0], str)):
             # Class was already prepared.
             return super(NaturalManager, cls).__new__(cls)
 
@@ -63,8 +62,7 @@ class _NaturalKeyModelBase(ModelBase):
         return super(_NaturalKeyModelBase, cls).__new__(cls, name, bases, attrs)
 
 
-class NaturalKeyModel(Model):
-    __metaclass__ = _NaturalKeyModelBase
+class NaturalKeyModel(Model, metaclass=_NaturalKeyModelBase):
     _natural_key = ()
 
     def natural_key(self):
@@ -75,7 +73,7 @@ class NaturalKeyModel(Model):
 
 
 def reset_synchro():
-    from models import ChangeLog, Reference, options
-    options.last_check = datetime.now()
+    from .models import ChangeLog, Reference, options
+    options.last_check = timezone.now()
     ChangeLog.objects.all().delete()
     Reference.objects.all().delete()

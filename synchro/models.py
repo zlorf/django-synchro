@@ -19,11 +19,13 @@ ACTIONS = (
 
 class SynchroSettings(dbsettings.Group):
     last_check = dbsettings.DateTimeValue('Last synchronization', default=now())
+
+
 options = SynchroSettings()
 
 
 class Reference(models.Model):
-    content_type = models.ForeignKey(ContentType)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     local_object_id = models.CharField(max_length=20)
     remote_object_id = models.CharField(max_length=20)
 
@@ -32,7 +34,7 @@ class Reference(models.Model):
 
 
 class ChangeLog(models.Model):
-    content_type = models.ForeignKey(ContentType)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.CharField(max_length=20)
     object = GenericForeignKey()
     date = models.DateTimeField(auto_now=True)
@@ -43,5 +45,5 @@ class ChangeLog(models.Model):
 
 
 class DeleteKey(models.Model):
-    changelog = models.OneToOneField(ChangeLog)
+    changelog = models.OneToOneField(ChangeLog, on_delete=models.CASCADE)
     key = models.CharField(max_length=200)

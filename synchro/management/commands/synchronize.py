@@ -1,15 +1,16 @@
-from datetime import datetime
-
 from django import VERSION
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils.translation import ugettext_lazy as _t
+from django.utils import timezone
 
 from synchro.models import Reference, ChangeLog, DeleteKey, options as app_options
 from synchro.models import ADDITION, CHANGE, DELETION, M2M_CHANGE
 from synchro.settings import REMOTE, LOCAL
+
+import pytz
 
 
 if not hasattr(transaction, 'atomic'):
@@ -71,11 +72,11 @@ def save_with_fks(ct, obj, new_pk):
     old_id = obj.pk
     obj._state.db = REMOTE
 
-    fks = (f for f in obj._meta.fields if f.rel)
+    fks = (f for f in obj._meta.fields if f.remote_field)
     for f in fks:
         fk_id = f.value_from_object(obj)
         if fk_id is not None:
-            fk_ct = ContentType.objects.get_for_model(f.rel.to)
+            fk_ct = ContentType.objects.get_for_model(f.remote_field.model)
             rem, _ = ensure_exist(fk_ct, fk_id)
             f.save_form_data(obj, rem)
 
@@ -100,7 +101,7 @@ def save_m2m(ct, obj, remote):
         for f in obj._meta.many_to_many:
             me = f.m2m_field_name()
             he_id = '%s_id' % f.m2m_reverse_field_name()
-            res[f.attname] = (f.rel.to, f.rel.through, me, he_id)
+            res[f.attname] = (f.remote_field.model, f.remote_field.through, me, he_id)
         if VERSION < (1, 8):
             m2m = obj._meta.get_all_related_many_to_many_objects()
         else:
@@ -114,13 +115,13 @@ def save_m2m(ct, obj, remote):
             me = f.m2m_reverse_field_name()
             he_id = '%s_id' % f.m2m_field_name()
             related_model = rel.model if VERSION < (1, 8) else rel.related_model
-            res[rel.get_accessor_name()] = (related_model, f.rel.through, me, he_id)
+            res[rel.get_accessor_name()] = (related_model, f.remote_field.through, me, he_id)
         M2M_CACHE[model_name] = res
 
     _m2m = {}
 
     # handle m2m fields
-    for f, (to, through, me, he_id) in M2M_CACHE[model_name].iteritems():
+    for f, (to, through, me, he_id) in M2M_CACHE[model_name].items():
         fk_ct = ContentType.objects.get_for_model(to)
         out = []
         if through._meta.auto_created:
@@ -135,9 +136,9 @@ def save_m2m(ct, obj, remote):
                 out.append(inter)
         _m2m[f] = not through._meta.auto_created, out
 
-    for f, (intermediary, out) in _m2m.iteritems():
+    for f, (intermediary, out) in _m2m.items():
         if not intermediary:
-            setattr(remote, f, out)
+            getattr(remote, f).set(out)
         else:
             getattr(remote, f).clear()
             for inter in out:
@@ -187,7 +188,7 @@ def perform_add(ct, id, log=None):
             change_with_fks(ct, obj, rem)
             rem = obj
     else:
-        new_pk = None if obj._meta.has_auto_field else obj.pk
+        new_pk = None if obj._meta.auto_field else obj.pk
         create_with_fks(ct, obj, new_pk)
         rem = obj
     ref, _ = Reference.objects.get_or_create(content_type=ct, local_object_id=id,
@@ -261,7 +262,8 @@ class Command(BaseCommand):
             raise exception_class('No REMOTE database specified in settings.')
 
         since = app_options.last_check
-        last_time = datetime.now()
+        since = since.replace(tzinfo=pytz.utc)
+        last_time = timezone.now()
         logs = ChangeLog.objects.filter(date__gt=since).select_related().order_by('date', 'pk')
 
         # Don't synchronize if object should be added/changed and later deleted;
@@ -281,6 +283,7 @@ class Command(BaseCommand):
                 ACTIONS[log.action](log.content_type, log.object_id, log)
 
         if len(logs):
+            last_time = last_time.strftime("%Y-%m-%d %H:%M:%S.%f")
             app_options.last_check = last_time
             return _t('Synchronization performed successfully.')
         else:
