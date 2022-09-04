@@ -72,17 +72,37 @@ def save_with_fks(ct, obj, new_pk):
     """
     old_id = obj.pk
     obj._state.db = REMOTE
+    rem = find_natural(ct, obj)
+    skip = False
+    if rem is not None:
+        if is_remote_newer(obj, rem):
+            skip = True
 
-    fks = (f for f in obj._meta.fields if (f.many_to_one or f.one_to_one))
-    for f in fks:
-        fk_id = f.value_from_object(obj)
-        if fk_id is not None:
-            fk_ct = ContentType.objects.get_for_model(f.related_model())
-            rem, _ = ensure_exist(fk_ct, fk_id)
-            f.save_form_data(obj, rem)
+    new_obj = obj.__class__.objects.filter(pk=obj.pk).using(REMOTE)
 
-    obj.pk = new_pk
-    obj.save(using=REMOTE)
+    if new_obj.exists():
+        if not skip:
+            new_obj = new_obj[0]
+            values = obj.__dict__
+            values.pop('_state')
+            if '_django_cleanup_original_cache' in values.keys():
+                values.pop('_django_cleanup_original_cache')
+            obj.__class__.objects.filter(pk=obj.pk).using(REMOTE).update(**values)
+
+    else:
+        fks = (f for f in obj._meta.fields if (f.many_to_one or f.one_to_one))
+        for f in fks:
+            fk_id = f.value_from_object(obj)
+            if fk_id is not None:
+                fk_ct = ContentType.objects.get_for_model(f.related_model())
+                rem, _ = ensure_exist(fk_ct, fk_id)
+                f.save_form_data(obj, rem)
+
+        if not new_obj:
+            obj.pk = new_pk
+        else:
+            obj.pk = None
+        obj.save(using=REMOTE)
 
     r, n = Reference.objects.get_or_create(content_type=ct, local_object_id=old_id,
                                            defaults={'remote_object_id': obj.pk})
