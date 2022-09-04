@@ -72,15 +72,16 @@ def save_with_fks(ct, obj, new_pk):
     """
     old_id = obj.pk
     obj._state.db = REMOTE
+    new_pk_list = SYNCHRO_CREATE_NEW  # Add models here that should not have the same primary key
     rem = find_natural(ct, obj)
     skip = False
     if rem is not None:
         if is_remote_newer(obj, rem):
             skip = True
 
-    new_obj = obj.__class__.objects.filter(pk=obj.pk).using(REMOTE)
+    new_obj= obj.__class__.objects.filter(pk=obj.pk).using(REMOTE)
 
-    if new_obj.exists():
+    if new_obj.exists() and type(obj) not in new_pk_list:
         if not skip:
             new_obj = new_obj[0]
             values = obj.__dict__
@@ -98,7 +99,7 @@ def save_with_fks(ct, obj, new_pk):
                 rem, _ = ensure_exist(fk_ct, fk_id)
                 f.save_form_data(obj, rem)
 
-        if not new_obj:
+        if not new_obj and type(obj) not in new_pk_list:
             obj.pk = new_pk
         else:
             obj.pk = None

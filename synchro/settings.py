@@ -68,6 +68,9 @@ LOCAL = 'default'
 ALLOW_RESET = getattr(settings, 'SYNCHRO_ALLOW_RESET', True)
 DEBUG = getattr(settings, 'SYNCHRO_DEBUG', False)
 
+# list of classes that will be created new while sync i.e Logs class
+SYNCHRO_CREATE_NEW = getattr(settings, 'SYNCHRO_CREATE_NEW', [])
+
 if REMOTE is None:
     if not hasattr(settings, 'SYNCHRO_REMOTE'):
         import warnings
