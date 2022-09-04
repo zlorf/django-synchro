@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from datetime import datetime
 
 from django import VERSION
@@ -10,6 +11,7 @@ from django.utils.translation import ugettext_lazy as _t
 from synchro.models import Reference, ChangeLog, DeleteKey, options as app_options
 from synchro.models import ADDITION, CHANGE, DELETION, M2M_CHANGE
 from synchro.settings import REMOTE, LOCAL
+import six
 
 
 if not hasattr(transaction, 'atomic'):
@@ -120,7 +122,7 @@ def save_m2m(ct, obj, remote):
     _m2m = {}
 
     # handle m2m fields
-    for f, (to, through, me, he_id) in M2M_CACHE[model_name].iteritems():
+    for f, (to, through, me, he_id) in six.iteritems(M2M_CACHE[model_name]):
         fk_ct = ContentType.objects.get_for_model(to)
         out = []
         if through._meta.auto_created:
@@ -135,7 +137,7 @@ def save_m2m(ct, obj, remote):
                 out.append(inter)
         _m2m[f] = not through._meta.auto_created, out
 
-    for f, (intermediary, out) in _m2m.iteritems():
+    for f, (intermediary, out) in six.iteritems(_m2m):
         if not intermediary:
             setattr(remote, f, out)
         else:
@@ -262,7 +264,8 @@ class Command(BaseCommand):
 
         since = app_options.last_check
         last_time = datetime.now()
-        logs = ChangeLog.objects.filter(date__gt=since).select_related().order_by('date', 'pk')
+        filters = {"date__gt": since} if since else {}
+        logs = ChangeLog.objects.filter(**filters).select_related().order_by('date', 'pk')
 
         # Don't synchronize if object should be added/changed and later deleted;
         to_del = {}
