@@ -10,7 +10,7 @@ from django.utils.translation import ugettext_lazy as _t
 
 from synchro.models import Reference, ChangeLog, DeleteKey, options as app_options
 from synchro.models import ADDITION, CHANGE, DELETION, M2M_CHANGE
-from synchro.settings import REMOTE, LOCAL
+from synchro.settings import REMOTE, LOCAL, SYNCHRO_CREATE_NEW
 import six
 
 
@@ -73,21 +73,23 @@ def save_with_fks(ct, obj, new_pk):
     old_id = obj.pk
     obj._state.db = REMOTE
 
-    fks = (f for f in obj._meta.fields if f.rel)
+    fks = (f for f in obj._meta.fields if (f.many_to_one or f.one_to_one))
     for f in fks:
         fk_id = f.value_from_object(obj)
         if fk_id is not None:
-            fk_ct = ContentType.objects.get_for_model(f.rel.to)
+            fk_ct = ContentType.objects.get_for_model(f.related_model())
             rem, _ = ensure_exist(fk_ct, fk_id)
             f.save_form_data(obj, rem)
 
     obj.pk = new_pk
     obj.save(using=REMOTE)
+
     r, n = Reference.objects.get_or_create(content_type=ct, local_object_id=old_id,
                                            defaults={'remote_object_id': obj.pk})
     if not n and r.remote_object_id != obj.pk:
         r.remote_object_id = obj.pk
         r.save()
+
 
 M2M_CACHE = {}
 
@@ -189,7 +191,8 @@ def perform_add(ct, id, log=None):
             change_with_fks(ct, obj, rem)
             rem = obj
     else:
-        new_pk = None if obj._meta.has_auto_field else obj.pk
+        # new_pk = None if obj._meta.has_auto_field else obj.pk
+        new_pk = obj.pk
         create_with_fks(ct, obj, new_pk)
         rem = obj
     ref, _ = Reference.objects.get_or_create(content_type=ct, local_object_id=id,
@@ -263,7 +266,11 @@ class Command(BaseCommand):
             raise exception_class('No REMOTE database specified in settings.')
 
         since = app_options.last_check
-        last_time = datetime.now()
+        from django.utils import timezone
+
+        last_time = timezone.now()
+        check_time = last_time
+
         filters = {"date__gt": since} if since else {}
         logs = ChangeLog.objects.filter(**filters).select_related().order_by('date', 'pk')
 
@@ -284,7 +291,7 @@ class Command(BaseCommand):
                 ACTIONS[log.action](log.content_type, log.object_id, log)
 
         if len(logs):
-            app_options.last_check = last_time
+            app_options.last_check = check_time
             return _t('Synchronization performed successfully.')
         else:
             return _t('No changes since last synchronization.')
