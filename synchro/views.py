@@ -26,4 +26,5 @@ def synchro(request):
         msg = _('Synchronization has been reset.')
         messages.add_message(request, messages.INFO, msg)
     return TemplateResponse(request, 'synchro.html', {'last': options.last_check,
-                                                      'reset_allowed': settings.ALLOW_RESET})
+                                                      'reset_allowed': settings.ALLOW_RESET,
+                                                      'remote_db': settings.REMOTE})
