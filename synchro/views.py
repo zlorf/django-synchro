@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.template.response import TemplateResponse
@@ -25,4 +26,5 @@ def synchro(request):
         msg = _('Synchronization has been reset.')
         messages.add_message(request, messages.INFO, msg)
     return TemplateResponse(request, 'synchro.html', {'last': options.last_check,
-                                                      'reset_allowed': settings.ALLOW_RESET})
+                                                      'reset_allowed': settings.ALLOW_RESET,
+                                                      'remote_db': settings.REMOTE})

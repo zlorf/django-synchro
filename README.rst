@@ -122,6 +122,13 @@ Generally, ``SYNCHRO_REMOTE`` setting can behave in 3 different ways:
 
 __ synchro_on_remote_
 
+``SYNCHRO_CREATE_NEW`` setting
+--------------------------
+SYNCHRO_CREATE_NEW should contain list of classes that should not be updated on remote server instead if they are created
+on local database and the same primary key is taken on remote database, they will be created new instead of update.
+
+This feature is created keeping in mind the models that can not be changed but only created new
+ (i.e Logs)
 
 Remarks and features
 ====================

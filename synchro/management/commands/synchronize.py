@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from datetime import datetime
 
 from django import VERSION
@@ -9,7 +10,8 @@ from django.utils.translation import ugettext_lazy as _t
 
 from synchro.models import Reference, ChangeLog, DeleteKey, options as app_options
 from synchro.models import ADDITION, CHANGE, DELETION, M2M_CHANGE
-from synchro.settings import REMOTE, LOCAL
+from synchro.settings import REMOTE, LOCAL, SYNCHRO_CREATE_NEW
+import six
 
 
 if not hasattr(transaction, 'atomic'):
@@ -70,22 +72,45 @@ def save_with_fks(ct, obj, new_pk):
     """
     old_id = obj.pk
     obj._state.db = REMOTE
+    new_pk_list = SYNCHRO_CREATE_NEW  # Add models here that should not have the same primary key
+    rem = find_natural(ct, obj)
+    skip = False
+    if rem is not None:
+        if is_remote_newer(obj, rem):
+            skip = True
 
-    fks = (f for f in obj._meta.fields if f.rel)
-    for f in fks:
-        fk_id = f.value_from_object(obj)
-        if fk_id is not None:
-            fk_ct = ContentType.objects.get_for_model(f.rel.to)
-            rem, _ = ensure_exist(fk_ct, fk_id)
-            f.save_form_data(obj, rem)
+    new_obj= obj.__class__.objects.filter(pk=obj.pk).using(REMOTE)
 
-    obj.pk = new_pk
-    obj.save(using=REMOTE)
+    if new_obj.exists() and type(obj) not in new_pk_list:
+        if not skip:
+            new_obj = new_obj[0]
+            values = obj.__dict__
+            values.pop('_state')
+            if '_django_cleanup_original_cache' in values.keys():
+                values.pop('_django_cleanup_original_cache')
+            obj.__class__.objects.filter(pk=obj.pk).using(REMOTE).update(**values)
+
+    else:
+        fks = (f for f in obj._meta.fields if (f.many_to_one or f.one_to_one))
+        for f in fks:
+            fk_id = f.value_from_object(obj)
+            if fk_id is not None:
+                fk_ct = ContentType.objects.get_for_model(f.related_model())
+                rem, _ = ensure_exist(fk_ct, fk_id)
+                f.save_form_data(obj, rem)
+
+        if not new_obj and type(obj) not in new_pk_list:
+            obj.pk = new_pk
+        else:
+            obj.pk = None
+        obj.save(using=REMOTE)
+
     r, n = Reference.objects.get_or_create(content_type=ct, local_object_id=old_id,
                                            defaults={'remote_object_id': obj.pk})
     if not n and r.remote_object_id != obj.pk:
         r.remote_object_id = obj.pk
         r.save()
+
 
 M2M_CACHE = {}
 
@@ -120,7 +145,7 @@ def save_m2m(ct, obj, remote):
     _m2m = {}
 
     # handle m2m fields
-    for f, (to, through, me, he_id) in M2M_CACHE[model_name].iteritems():
+    for f, (to, through, me, he_id) in six.iteritems(M2M_CACHE[model_name]):
         fk_ct = ContentType.objects.get_for_model(to)
         out = []
         if through._meta.auto_created:
@@ -135,7 +160,7 @@ def save_m2m(ct, obj, remote):
                 out.append(inter)
         _m2m[f] = not through._meta.auto_created, out
 
-    for f, (intermediary, out) in _m2m.iteritems():
+    for f, (intermediary, out) in six.iteritems(_m2m):
         if not intermediary:
             setattr(remote, f, out)
         else:
@@ -187,7 +212,8 @@ def perform_add(ct, id, log=None):
             change_with_fks(ct, obj, rem)
             rem = obj
     else:
-        new_pk = None if obj._meta.has_auto_field else obj.pk
+        # new_pk = None if obj._meta.has_auto_field else obj.pk
+        new_pk = obj.pk
         create_with_fks(ct, obj, new_pk)
         rem = obj
     ref, _ = Reference.objects.get_or_create(content_type=ct, local_object_id=id,
@@ -261,8 +287,13 @@ class Command(BaseCommand):
             raise exception_class('No REMOTE database specified in settings.')
 
         since = app_options.last_check
-        last_time = datetime.now()
-        logs = ChangeLog.objects.filter(date__gt=since).select_related().order_by('date', 'pk')
+        from django.utils import timezone
+
+        last_time = timezone.now()
+        check_time = last_time
+
+        filters = {"date__gt": since} if since else {}
+        logs = ChangeLog.objects.filter(**filters).select_related().order_by('date', 'pk')
 
         # Don't synchronize if object should be added/changed and later deleted;
         to_del = {}
@@ -281,7 +312,7 @@ class Command(BaseCommand):
                 ACTIONS[log.action](log.content_type, log.object_id, log)
 
         if len(logs):
-            app_options.last_check = last_time
+            app_options.last_check = check_time
             return _t('Synchronization performed successfully.')
         else:
             return _t('No changes since last synchronization.')

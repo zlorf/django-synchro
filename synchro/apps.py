@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from django.apps import AppConfig
 
 
@@ -6,5 +7,5 @@ class SynchroConfig(AppConfig):
     verbose_name = 'Synchro'
 
     def ready(self):
-        from signals import synchro_connect
+        from .signals import synchro_connect
         synchro_connect()
